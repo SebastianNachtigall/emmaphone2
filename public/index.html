@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmmaPhone2 - Kid-Friendly SIP Client</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>EmmaPhone2</h1>
+            <div class="status" id="status">Ready</div>
+        </header>
+
+        <main>
+            <div class="speed-dial-grid">
+                <button class="speed-dial-btn" id="dial-1" data-contact="1">
+                    <span class="contact-name">Friend 1</span>
+                    <span class="contact-number">+1234567890</span>
+                </button>
+                <button class="speed-dial-btn" id="dial-2" data-contact="2">
+                    <span class="contact-name">Friend 2</span>
+                    <span class="contact-number">+1234567891</span>
+                </button>
+                <button class="speed-dial-btn" id="dial-3" data-contact="3">
+                    <span class="contact-name">Friend 3</span>
+                    <span class="contact-number">+1234567892</span>
+                </button>
+                <button class="speed-dial-btn" id="dial-4" data-contact="4">
+                    <span class="contact-name">Friend 4</span>
+                    <span class="contact-number">+1234567893</span>
+                </button>
+            </div>
+
+            <div class="call-controls">
+                <button class="control-btn hangup-btn" id="hangup-btn" disabled>
+                    <span>Hang Up</span>
+                </button>
+            </div>
+
+            <div class="volume-controls">
+                <label for="volume-slider">Volume:</label>
+                <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="0.8">
+            </div>
+        </main>
+
+        <div class="sip-config" id="sip-config">
+            <h3>SIP Configuration</h3>
+            <div class="config-row">
+                <label for="sip-server">SIP Server:</label>
+                <input type="text" id="sip-server" placeholder="sip.example.com">
+            </div>
+            <div class="config-row">
+                <label for="sip-user">Username:</label>
+                <input type="text" id="sip-user" placeholder="username">
+            </div>
+            <div class="config-row">
+                <label for="sip-password">Password:</label>
+                <input type="password" id="sip-password" placeholder="password">
+            </div>
+            <button id="register-btn">Register</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jssip@3.10.1/dist/jssip.min.js"></script>
+    <script src="js/sipClient.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
