@@ -19,10 +19,31 @@ class SIPClient {
 
     async register(server, username, password) {
         try {
-            const socket = new JsSIP.WebSocketInterface(`wss://${server}`);
+            console.log('Starting SIP registration...');
+            console.log('Server:', server);
+            console.log('Username:', username);
+            console.log('URI will be:', `sip:${username}@${server}`);
+            
+            // Try different WebSocket configurations for LinHome.org
+            const wsUrls = [
+                `wss://${server}:5065`,  // Common WebRTC port
+                `wss://${server}:8089`,  // Alternative WebRTC port
+                `wss://${server}:443`,   // HTTPS port
+                `wss://${server}:5060`,  // Standard SIP port
+                `wss://${server}`,       // Default port
+                `ws://${server}:5060`,   // Try non-SSL
+                `ws://${server}:8080`,   // Alternative HTTP port
+            ];
+            
+            console.log('Will try WebSocket URLs:', wsUrls);
+            
+            const sockets = wsUrls.map(url => {
+                console.log('Creating socket for:', url);
+                return new JsSIP.WebSocketInterface(url);
+            });
             
             const configuration = {
-                sockets: [socket],
+                sockets: sockets,
                 uri: `sip:${username}@${server}`,
                 password: password,
                 register: true,
@@ -30,48 +51,68 @@ class SIPClient {
                 rtcpMuxPolicy: 'require'
             };
 
+            console.log('JsSIP Configuration:', configuration);
             this.ua = new JsSIP.UA(configuration);
 
             return new Promise((resolve, reject) => {
+                let timeoutId = setTimeout(() => {
+                    console.error('Registration timeout after 30 seconds');
+                    reject(new Error('Registration timeout'));
+                }, 30000);
+
                 this.ua.on('connecting', () => {
+                    console.log('JsSIP: Connecting...');
                     this.updateStatus('Connecting...');
                 });
 
                 this.ua.on('connected', () => {
+                    console.log('JsSIP: Connected to WebSocket');
                     this.updateStatus('Connected');
                 });
 
-                this.ua.on('disconnected', () => {
+                this.ua.on('disconnected', (e) => {
+                    console.log('JsSIP: Disconnected', e);
                     this.updateStatus('Disconnected');
                     this.isRegistered = false;
+                    clearTimeout(timeoutId);
+                    if (!this.isRegistered) {
+                        reject(new Error('Connection lost before registration'));
+                    }
                 });
 
-                this.ua.on('registered', () => {
+                this.ua.on('registered', (e) => {
+                    console.log('JsSIP: Successfully registered', e);
                     this.updateStatus('Registered');
                     this.isRegistered = true;
+                    clearTimeout(timeoutId);
                     resolve(true);
                 });
 
-                this.ua.on('unregistered', () => {
+                this.ua.on('unregistered', (e) => {
+                    console.log('JsSIP: Unregistered', e);
                     this.updateStatus('Unregistered');
                     this.isRegistered = false;
                 });
 
                 this.ua.on('registrationFailed', (e) => {
-                    this.updateStatus('Registration Failed');
+                    console.error('JsSIP: Registration failed', e);
+                    this.updateStatus('Registration Failed: ' + (e.cause || 'Unknown error'));
                     this.isRegistered = false;
-                    reject(new Error('Registration failed: ' + e.cause));
+                    clearTimeout(timeoutId);
+                    reject(new Error('Registration failed: ' + (e.cause || e.response?.status_code || 'Unknown error')));
                 });
 
                 this.ua.on('newRTCSession', (e) => {
+                    console.log('JsSIP: New RTC Session', e);
                     this.handleIncomingCall(e.session);
                 });
 
+                console.log('Starting JsSIP UA...');
                 this.ua.start();
             });
         } catch (error) {
             console.error('Registration error:', error);
-            this.updateStatus('Registration Error');
+            this.updateStatus('Registration Error: ' + error.message);
             throw error;
         }
     }

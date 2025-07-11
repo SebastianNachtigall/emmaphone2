@@ -2,10 +2,10 @@ class EmmaPhone {
     constructor() {
         this.sipClient = new SIPClient();
         this.speedDialContacts = {
-            1: { name: 'Friend 1', number: '+1234567890' },
-            2: { name: 'Friend 2', number: '+1234567891' },
-            3: { name: 'Friend 3', number: '+1234567892' },
-            4: { name: 'Friend 4', number: '+1234567893' }
+            1: { name: 'User 1001', number: '1001' },
+            2: { name: 'User 1002', number: '1002' },
+            3: { name: 'User 1003', number: '1003' },
+            4: { name: 'User 1004', number: '1004' }
         };
         
         this.initializeEventListeners();
@@ -39,17 +39,27 @@ class EmmaPhone {
         const username = document.getElementById('sip-user').value;
         const password = document.getElementById('sip-password').value;
 
-        if (!server || !username || !password) {
-            alert('Please fill in all SIP configuration fields');
+        if (!server || !username) {
+            alert('Please fill in server and username fields');
             return;
         }
+
+        console.log('Starting registration process...');
+        console.log('Server:', server);
+        console.log('Username:', username);
 
         try {
             await this.sipClient.register(server, username, password);
             this.storeConfig(server, username, password);
+            console.log('Registration successful!');
             alert('Successfully registered!');
         } catch (error) {
             console.error('Registration failed:', error);
+            console.error('Error details:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack
+            });
             alert('Registration failed: ' + error.message);
         }
     }

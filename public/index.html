@@ -16,20 +16,20 @@
         <main>
             <div class="speed-dial-grid">
                 <button class="speed-dial-btn" id="dial-1" data-contact="1">
-                    <span class="contact-name">Friend 1</span>
-                    <span class="contact-number">+1234567890</span>
+                    <span class="contact-name">User 1001</span>
+                    <span class="contact-number">1001</span>
                 </button>
                 <button class="speed-dial-btn" id="dial-2" data-contact="2">
-                    <span class="contact-name">Friend 2</span>
-                    <span class="contact-number">+1234567891</span>
+                    <span class="contact-name">User 1002</span>
+                    <span class="contact-number">1002</span>
                 </button>
                 <button class="speed-dial-btn" id="dial-3" data-contact="3">
-                    <span class="contact-name">Friend 3</span>
-                    <span class="contact-number">+1234567892</span>
+                    <span class="contact-name">User 1003</span>
+                    <span class="contact-number">1003</span>
                 </button>
                 <button class="speed-dial-btn" id="dial-4" data-contact="4">
-                    <span class="contact-name">Friend 4</span>
-                    <span class="contact-number">+1234567893</span>
+                    <span class="contact-name">User 1004</span>
+                    <span class="contact-number">1004</span>
                 </button>
             </div>
 
@@ -47,24 +47,28 @@
 
         <div class="sip-config" id="sip-config">
             <h3>SIP Configuration</h3>
+            <div class="demo-info">
+                <p><strong>Local Asterisk Server:</strong> WebRTC-enabled SIP server</p>
+                <p><strong>Users:</strong> 1001/1234, 1002/1234</p>
+            </div>
             <div class="config-row">
                 <label for="sip-server">SIP Server:</label>
-                <input type="text" id="sip-server" placeholder="sip.example.com">
+                <input type="text" id="sip-server" value="localhost" placeholder="sip.example.com">
             </div>
             <div class="config-row">
                 <label for="sip-user">Username:</label>
-                <input type="text" id="sip-user" placeholder="username">
+                <input type="text" id="sip-user" value="1001" placeholder="1001">
             </div>
             <div class="config-row">
                 <label for="sip-password">Password:</label>
-                <input type="password" id="sip-password" placeholder="password">
+                <input type="password" id="sip-password" value="1234" placeholder="password">
             </div>
             <button id="register-btn">Register</button>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/jssip@3.10.1/dist/jssip.min.js"></script>
-    <script src="js/sipClient.js"></script>
-    <script src="js/main.js"></script>
+    <script src="lib/jssip.min.js"></script>
+    <script src="js/sipClient-new.js"></script>
+    <script src="js/main.js?v=3&t=1731340800"></script>
 </body>
 </html>
