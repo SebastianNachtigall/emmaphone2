@@ -212,6 +212,83 @@ app.get('/api/contacts', requireAuth, (req, res) => {
   }
 });
 
+// Friend group endpoints
+app.get('/api/groups', requireAuth, (req, res) => {
+  try {
+    const groups = db.getUserGroups(req.session.user.id);
+    res.json(groups);
+  } catch (error) {
+    console.error('Error fetching groups:', error);
+    res.status(500).json({ error: 'Failed to fetch groups' });
+  }
+});
+
+app.post('/api/groups', requireAuth, (req, res) => {
+  try {
+    const { name, description } = req.body;
+    
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({ error: 'Group name is required' });
+    }
+    
+    const result = db.createFriendGroup(name.trim(), description?.trim(), req.session.user.id);
+    res.json({ 
+      success: true, 
+      group: { 
+        id: result.id, 
+        name: name.trim(), 
+        description: description?.trim(), 
+        inviteCode: result.inviteCode,
+        isAdmin: true 
+      }
+    });
+  } catch (error) {
+    console.error('Error creating group:', error);
+    res.status(500).json({ error: 'Failed to create group' });
+  }
+});
+
+app.post('/api/groups/join', requireAuth, (req, res) => {
+  try {
+    const { inviteCode } = req.body;
+    
+    if (!inviteCode || inviteCode.trim().length === 0) {
+      return res.status(400).json({ error: 'Invite code is required' });
+    }
+    
+    const result = db.joinGroupByInviteCode(req.session.user.id, inviteCode.trim().toUpperCase());
+    res.json({ success: true, group: result });
+  } catch (error) {
+    console.error('Error joining group:', error);
+    if (error.message === 'Group not found') {
+      res.status(404).json({ error: 'Invalid invite code' });
+    } else if (error.message === 'Already a member') {
+      res.status(409).json({ error: 'Already a member of this group' });
+    } else {
+      res.status(500).json({ error: 'Failed to join group' });
+    }
+  }
+});
+
+app.get('/api/groups/:groupId/members', requireAuth, (req, res) => {
+  try {
+    const groupId = parseInt(req.params.groupId);
+    if (isNaN(groupId)) {
+      return res.status(400).json({ error: 'Invalid group ID' });
+    }
+    
+    const members = db.getGroupMembers(groupId, req.session.user.id);
+    res.json(members);
+  } catch (error) {
+    console.error('Error fetching group members:', error);
+    if (error.message === 'Access denied') {
+      res.status(403).json({ error: 'Access denied' });
+    } else {
+      res.status(500).json({ error: 'Failed to fetch group members' });
+    }
+  }
+});
+
 // Call initiation endpoint
 app.post('/api/initiate-call', requireAuth, async (req, res) => {
   try {

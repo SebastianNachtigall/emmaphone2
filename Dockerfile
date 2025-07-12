@@ -16,24 +16,15 @@ CMD ["npm", "run", "dev"]
 
 # Production stage
 FROM base AS production
-RUN npm ci --only=production
+RUN npm install --only=production
 
 # Copy application code
 COPY src/ ./src/
 COPY public/ ./public/
+COPY database/ ./database/
 
 # Create directories for data persistence
 RUN mkdir -p /app/data /app/certs
-
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S emmaphone -u 1001 -G nodejs
-
-# Change ownership of app directory
-RUN chown -R emmaphone:nodejs /app
-
-# Switch to non-root user
-USER emmaphone
 
 # Expose ports (HTTP and HTTPS)
 EXPOSE 3001 3443

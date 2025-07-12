@@ -23,7 +23,6 @@ services:
       - "3001:3001"     # HTTP
       - "3443:3443"     # HTTPS
     volumes:
-      - ./data:/app/data
       - ./certs:/app/certs
       - emmaphone-db:/app/data/db
     environment:

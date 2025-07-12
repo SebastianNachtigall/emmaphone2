@@ -55,6 +55,84 @@
             <button id="connect-btn" class="connect-btn">Connect to LiveKit</button>
             <p class="connection-info">Connect to start making calls</p>
         </div>
+
+        <!-- Friend Groups Section -->
+        <div class="groups-section">
+            <div class="groups-header">
+                <h3>Friend Groups</h3>
+                <div class="groups-actions">
+                    <button id="create-group-btn" class="action-btn primary">Create Group</button>
+                    <button id="join-group-btn" class="action-btn secondary">Join Group</button>
+                </div>
+            </div>
+            <div id="groups-list" class="groups-list">
+                <div class="loading">Loading groups...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Group Modal -->
+    <div class="modal-overlay" id="create-group-modal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Create New Group</h3>
+                <button class="modal-close" id="create-group-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="create-group-form">
+                    <div class="form-group">
+                        <label for="group-name">Group Name</label>
+                        <input type="text" id="group-name" name="name" placeholder="e.g., Smith Family" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="group-description">Description (optional)</label>
+                        <textarea id="group-description" name="description" placeholder="Describe your group..." rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn secondary" id="create-group-cancel">Cancel</button>
+                        <button type="submit" class="btn primary">Create Group</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Join Group Modal -->
+    <div class="modal-overlay" id="join-group-modal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Join Group</h3>
+                <button class="modal-close" id="join-group-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="join-group-form">
+                    <div class="form-group">
+                        <label for="invite-code">Invite Code</label>
+                        <input type="text" id="invite-code" name="inviteCode" placeholder="e.g., FAMILY123" required>
+                        <small>Enter the invite code shared by the group admin</small>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn secondary" id="join-group-cancel">Cancel</button>
+                        <button type="submit" class="btn primary">Join Group</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Group Details Modal -->
+    <div class="modal-overlay" id="group-details-modal" style="display: none;">
+        <div class="modal large">
+            <div class="modal-header">
+                <h3 id="group-details-title">Group Details</h3>
+                <button class="modal-close" id="group-details-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="group-details-content">
+                    <!-- Dynamic content will be loaded here -->
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Incoming Call Modal -->
@@ -79,6 +157,6 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="lib/livekit-client.umd.min.js"></script>
     <script src="js/liveKitClient.js"></script>
-    <script src="js/main-simple.js?v=1"></script>
+    <script src="js/main-simple.js?v=2"></script>
 </body>
 </html>

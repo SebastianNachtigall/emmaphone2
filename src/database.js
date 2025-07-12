@@ -215,6 +215,60 @@ class DatabaseManager {
         return stmt.all(userId, userId);
     }
 
+    joinGroupByInviteCode(userId, inviteCode) {
+        const findGroup = this.db.prepare(`
+            SELECT id, name, admin_user_id FROM friend_groups 
+            WHERE invite_code = ? AND is_active = 1
+        `);
+        
+        const checkMembership = this.db.prepare(`
+            SELECT user_id FROM user_groups 
+            WHERE user_id = ? AND group_id = ?
+        `);
+        
+        const addToGroup = this.db.prepare(`
+            INSERT INTO user_groups (user_id, group_id)
+            VALUES (?, ?)
+        `);
+        
+        const group = findGroup.get(inviteCode);
+        if (!group) {
+            throw new Error('Group not found');
+        }
+        
+        const existingMembership = checkMembership.get(userId, group.id);
+        if (existingMembership) {
+            throw new Error('Already a member');
+        }
+        
+        addToGroup.run(userId, group.id);
+        return { id: group.id, name: group.name };
+    }
+
+    getGroupMembers(groupId, requestingUserId) {
+        // Check if requesting user is in the group
+        const memberCheck = this.db.prepare(`
+            SELECT user_id FROM user_groups 
+            WHERE user_id = ? AND group_id = ?
+        `).get(requestingUserId, groupId);
+        
+        if (!memberCheck) {
+            throw new Error('Access denied');
+        }
+        
+        const stmt = this.db.prepare(`
+            SELECT u.id, u.username, u.display_name, u.avatar_color, ug.joined_at,
+                   (fg.admin_user_id = u.id) as is_admin
+            FROM users u
+            JOIN user_groups ug ON u.id = ug.user_id
+            JOIN friend_groups fg ON ug.group_id = fg.id
+            WHERE ug.group_id = ? AND u.is_active = 1 AND ug.is_approved = 1
+            ORDER BY is_admin DESC, ug.joined_at ASC
+        `);
+        
+        return stmt.all(groupId);
+    }
+
     // Call logging
     logCall(callerId, calleeId, roomName, status = 'initiated') {
         const stmt = this.db.prepare(`
