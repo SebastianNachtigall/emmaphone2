@@ -18,8 +18,7 @@ class EmmaPhone2 {
         this.setupEventListeners();
         this.updateUI();
         
-        console.log('EmmaPhone2 LiveKit Edition initialized');
-        console.log('LiveKit supported:', typeof window.LivekitClient !== 'undefined');
+        console.log('EmmaPhone2 initialized - LiveKit supported:', typeof window.LivekitClient !== 'undefined');
         
         // Check if LiveKit SDK loaded
         if (typeof window.LivekitClient === 'undefined') {
@@ -63,7 +62,6 @@ class EmmaPhone2 {
 
     async handleConnection() {
         try {
-            console.log('Starting LiveKit connection...');
             this.updateStatus('Connecting to LiveKit...');
             
             // Generate a demo token for testing
@@ -77,8 +75,7 @@ class EmmaPhone2 {
             const wsUrl = tokenResponse.wsUrl || 'ws://localhost:7880';
             const token = tokenResponse.token;
             
-            console.log('Using token:', token.substring(0, 50) + '...');
-            console.log('Connecting to:', wsUrl);
+            console.log('Connecting to LiveKit:', wsUrl);
             
             await this.liveKitClient.connect(wsUrl, token);
             
@@ -101,7 +98,6 @@ class EmmaPhone2 {
         // For testing purposes, we'll create a basic token
         // In production, your server would generate proper JWT tokens
         
-        console.log('Generating test token for LiveKit...');
         
         // This is a simplified approach for local testing
         // You would typically call your server API here
@@ -119,7 +115,6 @@ class EmmaPhone2 {
             
             if (response.ok) {
                 const data = await response.json();
-                console.log('Token response from server:', data);
                 return data; // Return the full response object
             } else {
                 const errorText = await response.text();
@@ -127,7 +122,6 @@ class EmmaPhone2 {
             }
         } catch (error) {
             console.error('Server token generation failed:', error);
-            console.log('Response details:', error);
             // For demo purposes, we'll return a placeholder
             // Real LiveKit tokens are JWT tokens with proper signing
             throw new Error('Token generation failed: ' + error.message);
@@ -147,7 +141,6 @@ class EmmaPhone2 {
         }
 
         try {
-            console.log('Speed dial pressed:', contactId, contact);
             await this.liveKitClient.makeCall(contact.number, contact.name);
         } catch (error) {
             console.error('Call failed:', error);
@@ -156,7 +149,6 @@ class EmmaPhone2 {
     }
 
     handleHangup() {
-        console.log('Hangup button pressed');
         this.liveKitClient.hangup();
     }
 
@@ -180,7 +172,6 @@ class EmmaPhone2 {
         const statusElement = document.getElementById('status');
         if (statusElement) {
             statusElement.textContent = message;
-            console.log('Status:', message);
         }
     }
 }

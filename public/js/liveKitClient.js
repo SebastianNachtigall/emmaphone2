@@ -18,8 +18,7 @@ class LiveKitClient {
 
     async connect(wsUrl, token) {
         try {
-            console.log('=== LIVEKIT WEB SDK CONNECTION ===');
-            console.log('Connecting to LiveKit server...', wsUrl);
+            console.log('Connecting to LiveKit server:', wsUrl);
             
             // Import LiveKit from global scope (loaded via CDN)
             const { Room, RoomEvent, Track } = window.LivekitClient;
@@ -37,7 +36,7 @@ class LiveKitClient {
             this.setupRoomEventListeners();
 
             await this.room.connect(wsUrl, token);
-            console.log('Connected to LiveKit room:', this.room.name);
+            console.log('Connected to LiveKit room');
             
             this.isConnected = true;
             this.updateStatus('Connected to LiveKit');
@@ -55,7 +54,6 @@ class LiveKitClient {
         
         this.room
             .on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
-                console.log('Track subscribed:', track.kind, 'from', participant.identity);
                 
                 if (track.kind === Track.Kind.Audio) {
                     const audioElement = track.attach();
@@ -65,7 +63,6 @@ class LiveKitClient {
                 }
             })
             .on(RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
-                console.log('Track unsubscribed:', track.kind, 'from', participant.identity);
                 
                 if (track.kind === Track.Kind.Audio) {
                     const audioElement = document.getElementById(`audio-${participant.identity}`);
@@ -75,11 +72,9 @@ class LiveKitClient {
                 }
             })
             .on(RoomEvent.ParticipantConnected, (participant) => {
-                console.log('Participant connected:', participant.identity);
                 this.updateStatus('Call connected');
             })
             .on(RoomEvent.ParticipantDisconnected, (participant) => {
-                console.log('Participant disconnected:', participant.identity);
                 this.updateStatus('Call ended');
                 this.handleCallEnded();
             })
@@ -98,7 +93,6 @@ class LiveKitClient {
         try {
             const { createLocalTracks, Track } = window.LivekitClient;
             
-            console.log('Creating local audio track...');
             const tracks = await createLocalTracks({
                 audio: true,
                 video: false
@@ -108,7 +102,6 @@ class LiveKitClient {
             if (audioTrack) {
                 await this.room.localParticipant.publishTrack(audioTrack);
                 this.localAudioTrack = audioTrack;
-                console.log('Audio track published');
                 return true;
             }
         } catch (error) {
@@ -123,7 +116,6 @@ class LiveKitClient {
         }
 
         try {
-            console.log('Making call to:', contactNumber, contactName);
             this.currentContact = { number: contactNumber, name: contactName };
             
             // Enable audio first
@@ -155,7 +147,6 @@ class LiveKitClient {
     }
 
     handleCallEnded() {
-        console.log('Call ended');
         this.updateStatus('Ready');
         this.updateCallControls(false);
         this.currentContact = null;
@@ -179,7 +170,6 @@ class LiveKitClient {
             try {
                 await this.room.startAudio();
                 startAudioBtn.remove();
-                console.log('Audio playback started');
             } catch (error) {
                 console.error('Failed to start audio:', error);
             }
@@ -201,7 +191,6 @@ class LiveKitClient {
                 muteBtn.textContent = currentlyMuted ? 'Mute' : 'Unmute';
             }
             
-            console.log('Audio', currentlyMuted ? 'unmuted' : 'muted');
         }
     }
 
