@@ -47,8 +47,6 @@ app.post('/api/livekit-token', async (req, res) => {
     const token = await at.toJwt();
     
     console.log('Generated LiveKit token for:', participantName, 'in room:', roomName);
-    console.log('Token type:', typeof token);
-    console.log('Token value:', token);
     
     res.json({ 
       token,
