@@ -41,6 +41,14 @@ class LiveKitClient {
             this.isConnected = true;
             this.updateStatus('Connected to LiveKit');
             
+            // Auto-enable audio when connecting to a room (for calls)
+            if (this.room.name && this.room.name.startsWith('call-')) {
+                console.log('Call room detected, enabling audio...');
+                await this.enableAudio();
+                this.updateCallControls(true);
+                this.updateStatus('In call');
+            }
+            
             return true;
         } catch (error) {
             console.error('LiveKit connection failed:', error);
@@ -54,12 +62,18 @@ class LiveKitClient {
         
         this.room
             .on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+                console.log('Track subscribed:', track.kind, 'from', participant.identity);
                 
                 if (track.kind === Track.Kind.Audio) {
                     const audioElement = track.attach();
                     audioElement.id = `audio-${participant.identity}`;
+                    audioElement.autoplay = true;
+                    audioElement.volume = 1.0;
                     document.body.appendChild(audioElement);
-                    this.updateStatus('In Call with ' + participant.identity);
+                    
+                    console.log('Audio element created for:', participant.identity);
+                    this.updateStatus('Audio connected with ' + participant.identity);
+                    this.updateCallControls(true);
                 }
             })
             .on(RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
@@ -72,10 +86,14 @@ class LiveKitClient {
                 }
             })
             .on(RoomEvent.ParticipantConnected, (participant) => {
+                console.log('Participant connected:', participant.identity);
                 this.updateStatus('Call connected');
+                this.updateCallControls(true);
             })
             .on(RoomEvent.ParticipantDisconnected, (participant) => {
+                console.log('Participant disconnected:', participant.identity);
                 this.updateStatus('Call ended');
+                this.updateCallControls(false);
                 this.handleCallEnded();
             })
             .on(RoomEvent.Disconnected, (reason) => {
@@ -93,20 +111,30 @@ class LiveKitClient {
         try {
             const { createLocalTracks, Track } = window.LivekitClient;
             
+            console.log('Requesting microphone access...');
             const tracks = await createLocalTracks({
-                audio: true,
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                },
                 video: false
             });
 
             const audioTrack = tracks.find(track => track.kind === Track.Kind.Audio);
             if (audioTrack) {
+                console.log('Publishing audio track...');
                 await this.room.localParticipant.publishTrack(audioTrack);
                 this.localAudioTrack = audioTrack;
+                console.log('Audio track published successfully');
                 return true;
+            } else {
+                console.error('No audio track found');
+                return false;
             }
         } catch (error) {
             console.error('Failed to enable audio:', error);
-            throw new Error('Microphone access denied');
+            throw new Error('Microphone access denied: ' + error.message);
         }
     }
 
@@ -144,6 +172,26 @@ class LiveKitClient {
         if (this.room) {
             this.room.disconnect();
         }
+        this.handleCallEnded();
+    }
+
+    async disconnect() {
+        if (this.room) {
+            await this.room.disconnect();
+        }
+        this.room = null;
+        this.isConnected = false;
+        this.currentContact = null;
+        
+        // Clean up local tracks
+        if (this.localAudioTrack) {
+            this.localAudioTrack.stop();
+            this.localAudioTrack = null;
+        }
+        
+        // Clean up remote audio elements
+        const remoteAudioElements = document.querySelectorAll('audio[id^="audio-"]');
+        remoteAudioElements.forEach(element => element.remove());
     }
 
     handleCallEnded() {

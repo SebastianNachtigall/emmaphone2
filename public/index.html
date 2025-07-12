@@ -67,8 +67,28 @@
         </div>
     </div>
 
+    <!-- Incoming Call Modal -->
+    <div class="incoming-call-modal" id="incoming-call-modal" style="display: none;">
+        <div class="call-modal-content">
+            <div class="caller-info">
+                <h2>Incoming Call</h2>
+                <p class="caller-name" id="caller-name">Unknown Caller</p>
+                <p class="call-subtitle">wants to talk with you</p>
+            </div>
+            <div class="call-actions">
+                <button class="call-btn accept-btn" id="accept-call-btn">
+                    📞 Accept
+                </button>
+                <button class="call-btn reject-btn" id="reject-call-btn">
+                    ❌ Reject
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
     <script src="lib/livekit-client.umd.min.js"></script>
     <script src="js/liveKitClient.js"></script>
-    <script src="js/main.js?v=2"></script>
+    <script src="js/main.js?v=3"></script>
 </body>
 </html>
