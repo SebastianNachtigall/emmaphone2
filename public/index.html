@@ -48,7 +48,7 @@
         <div class="sip-config" id="sip-config">
             <h3>SIP Configuration</h3>
             <div class="demo-info">
-                <p><strong>Local Asterisk Server:</strong> WebRTC-enabled SIP server</p>
+                <p><strong>LiveKit SIP Server:</strong> WebRTC-SIP bridge running locally</p>
                 <p><strong>Users:</strong> 1001/1234, 1002/1234</p>
             </div>
             <div class="config-row">
@@ -63,12 +63,12 @@
                 <label for="sip-password">Password:</label>
                 <input type="password" id="sip-password" value="1234" placeholder="password">
             </div>
-            <button id="register-btn">Register</button>
+            <button id="register-btn">Connect to LiveKit</button>
         </div>
     </div>
 
-    <script src="lib/jssip.min.js"></script>
-    <script src="js/sipClient-new.js"></script>
-    <script src="js/main.js?v=3&t=1731340800"></script>
+    <script src="lib/livekit-client.umd.min.js"></script>
+    <script src="js/liveKitClient.js"></script>
+    <script src="js/main-livekit.js?v=1"></script>
 </body>
 </html>

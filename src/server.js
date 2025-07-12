@@ -3,6 +3,7 @@ const https = require('https');
 const fs = require('fs');
 const cors = require('cors');
 const path = require('path');
+const { AccessToken } = require('livekit-server-sdk');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -14,6 +15,52 @@ app.use(express.static('public'));
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+});
+
+// LiveKit token generation endpoint
+app.post('/api/livekit-token', async (req, res) => {
+  try {
+    const { roomName, participantName } = req.body;
+    
+    if (!roomName || !participantName) {
+      return res.status(400).json({ error: 'roomName and participantName are required' });
+    }
+
+    // LiveKit credentials from our configuration
+    const apiKey = 'APIKeySecret_1234567890abcdef';
+    const apiSecret = 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
+    
+    const at = new AccessToken(apiKey, apiSecret, {
+      identity: participantName,
+      name: participantName,
+    });
+    
+    // Grant permissions for audio calling
+    at.addGrant({
+      room: roomName,
+      roomJoin: true,
+      canPublish: true,
+      canSubscribe: true,
+      canPublishData: true
+    });
+
+    const token = await at.toJwt();
+    
+    console.log('Generated LiveKit token for:', participantName, 'in room:', roomName);
+    console.log('Token type:', typeof token);
+    console.log('Token value:', token);
+    
+    res.json({ 
+      token,
+      roomName,
+      participantName,
+      wsUrl: 'ws://localhost:7880'
+    });
+    
+  } catch (error) {
+    console.error('Token generation failed:', error);
+    res.status(500).json({ error: 'Failed to generate token' });
+  }
 });
 
 // HTTP server (redirect to HTTPS)

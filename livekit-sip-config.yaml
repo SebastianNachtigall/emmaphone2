@@ -1,0 +1,30 @@
+api_key: APIKeySecret_1234567890abcdef
+api_secret: abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+ws_url: ws://livekit-server:7880
+health_port: 8080
+redis:
+  address: redis:6379
+
+sip_port: 5060
+sip_ip: ""
+
+# Dispatch rules for incoming calls
+dispatch_rules:
+  - match: ".*"           # Match any incoming number
+    dispatch_rule_direct: 
+      room_name: "sip-room"
+      identity: "caller-{from}"
+
+# SIP trunk configurations for different providers/endpoints  
+trunks:
+  - name: "local-trunk"
+    inbound_username: "1001"
+    inbound_password: "1234"
+    outbound_username: "1001"
+    outbound_password: "1234"
+
+  - name: "local-trunk-2"
+    inbound_username: "1002"
+    inbound_password: "1234"
+    outbound_username: "1002"
+    outbound_password: "1234"

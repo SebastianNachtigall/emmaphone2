@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: livekit-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - livekit-net
+
+  livekit-server:
+    image: livekit/livekit-server:latest
+    container_name: livekit-server
+    ports:
+      - "7880:7880"     # HTTP
+      - "7881:7881"     # gRPC
+      - "7882:7882/udp" # TURN/UDP
+    volumes:
+      - ./livekit-config.yaml:/etc/livekit.yaml
+    command: --config /etc/livekit.yaml
+    depends_on:
+      - redis
+    networks:
+      - livekit-net
+
+  livekit-sip:
+    image: livekit/sip:latest
+    container_name: livekit-sip
+    ports:
+      - "5060:5060/udp"  # SIP UDP
+      - "5060:5060/tcp"  # SIP TCP
+    volumes:
+      - ./livekit-sip-config.yaml:/etc/sip.yaml
+    command: --config /etc/sip.yaml
+    depends_on:
+      - livekit-server
+      - redis
+    networks:
+      - livekit-net
+
+networks:
+  livekit-net:
+    driver: bridge

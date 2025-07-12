@@ -27,18 +27,20 @@ class SIPClient {
             
             // Local Asterisk server configuration
             if (server === 'localhost') {
-                console.log('=== LOCAL ASTERISK SERVER ===');
-                console.log('Connecting to local Asterisk server...');
+                console.log('=== LOCAL LIVEKIT SIP SERVER ===');
+                console.log('Connecting to local LiveKit SIP server...');
                 
                 // Use localhost WebSocket connection
                 const wsUrls = [
-                    `ws://${server}:8088/ws`,        // Local Asterisk WebSocket
+                    `ws://${server}:5060/ws`,        // LiveKit SIP with WebSocket path
+                    `ws://${server}:7880/ws`,        // LiveKit server WebSocket  
+                    `ws://${server}:8080/ws`,        // Alternative WebSocket port
                 ];
                 
-                console.log('Local Asterisk WebSocket URLs:', wsUrls);
+                console.log('LiveKit SIP WebSocket URLs:', wsUrls);
                 
                 const sockets = wsUrls.map(url => {
-                    console.log('Creating local Asterisk socket for:', url);
+                    console.log('Creating LiveKit SIP socket for:', url);
                     return new JsSIP.WebSocketInterface(url);
                 });
                 
@@ -48,7 +50,6 @@ class SIPClient {
                     password: password,
                     register: true,
                     session_timers: false,
-                    rtcpMuxPolicy: 'require',
                     pcConfig: {
                         iceServers: [
                             { urls: 'stun:stun.l.google.com:19302' }
@@ -66,17 +67,17 @@ class SIPClient {
                     }, 30000);
 
                     this.ua.on('connecting', () => {
-                        console.log('Local Asterisk: Connecting...');
+                        console.log('LiveKit SIP: Connecting...');
                         this.updateStatus('Connecting...');
                     });
 
                     this.ua.on('connected', () => {
-                        console.log('Local Asterisk: Connected to WebSocket');
+                        console.log('LiveKit SIP: Connected to WebSocket');
                         this.updateStatus('Connected');
                     });
 
                     this.ua.on('disconnected', (e) => {
-                        console.log('Local Asterisk: Disconnected', e);
+                        console.log('LiveKit SIP: Disconnected', e);
                         this.updateStatus('Disconnected');
                         this.isRegistered = false;
                         clearTimeout(timeoutId);
@@ -86,7 +87,7 @@ class SIPClient {
                     });
 
                     this.ua.on('registered', (e) => {
-                        console.log('Local Asterisk: Successfully registered', e);
+                        console.log('LiveKit SIP: Successfully registered', e);
                         this.updateStatus('Registered');
                         this.isRegistered = true;
                         clearTimeout(timeoutId);
@@ -100,7 +101,7 @@ class SIPClient {
                     });
 
                     this.ua.on('registrationFailed', (e) => {
-                        console.error('Local Asterisk: Registration failed', e);
+                        console.error('LiveKit SIP: Registration failed', e);
                         this.updateStatus('Registration Failed: ' + (e.cause || 'Unknown error'));
                         this.isRegistered = false;
                         clearTimeout(timeoutId);
@@ -117,7 +118,7 @@ class SIPClient {
                         }
                     });
 
-                    console.log('Starting Local Asterisk JsSIP UA...');
+                    console.log('Starting LiveKit SIP JsSIP UA...');
                     this.ua.start();
                 });
             } else if (server === 'sip2sip.info') {
@@ -459,11 +460,7 @@ class SIPClient {
             const options = {
                 eventHandlers: eventHandlers,
                 mediaConstraints: {
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true
-                    },
+                    audio: true,
                     video: false
                 },
                 rtcOfferConstraints: {
