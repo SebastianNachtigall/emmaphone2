@@ -1,0 +1,32 @@
+version: '3.8'
+
+# Development override for local testing
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  emmaphone:
+    build:
+      context: .
+      target: development
+    volumes:
+      # Mount source code for hot reload during development
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=development
+      - LIVEKIT_URL=ws://localhost:7880
+    ports:
+      - "3001:3001"
+      - "3443:3443"
+    command: npm run dev
+
+  livekit:
+    environment:
+      - LIVEKIT_DEV_MODE=true
+    volumes:
+      - ./config/livekit.yaml:/etc/livekit.yaml
+
+  redis:
+    ports:
+      - "6379:6379"  # Expose Redis port for development tools

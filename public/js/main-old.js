@@ -6,7 +6,6 @@ class EmmaPhone2 {
         this.currentUser = null;
         this.contacts = [];
         this.incomingCallData = null;
-        this.authChecked = false; // Flag to prevent repeated auth checks
         
         this.init();
     }
@@ -283,129 +282,6 @@ class EmmaPhone2 {
 
     handleHangup() {
         this.liveKitClient.hangup();
-    }
-
-    async checkAuthentication() {
-        if (this.authChecked) {
-            console.log('🛑 Auth already checked, skipping');
-            return;
-        }
-        
-        this.authChecked = true;
-        console.log('🔍 checkAuthentication() called');
-        try {
-            const response = await fetch('/api/auth/me');
-            if (response.ok) {
-                this.currentUser = await response.json();
-                console.log('✅ Authenticated user:', this.currentUser);
-                await this.loadContacts();
-                this.setupSocket();
-                this.updateUI();
-                this.updateStatus('Ready - Click Connect to start');
-                console.log('🎯 Authentication complete - should stop calling');
-            } else {
-                console.log('❌ Not authenticated, redirecting to login');
-                window.location.href = '/login.html';
-            }
-        } catch (error) {
-            console.error('❌ Authentication check failed:', error);
-            window.location.href = '/login.html';
-        }
-    }
-
-    async loadContacts() {
-        try {
-            const response = await fetch('/api/contacts');
-            if (response.ok) {
-                this.contacts = await response.json();
-                console.log('Loaded contacts:', this.contacts);
-            } else {
-                this.contacts = [];
-            }
-        } catch (error) {
-            console.error('Error loading contacts:', error);
-            this.contacts = [];
-        }
-    }
-
-    setupSpeedDialButtons() {
-        for (let i = 1; i <= 4; i++) {
-            const btn = document.getElementById(`dial-${i}`);
-            if (btn) {
-                btn.addEventListener('click', () => this.handleSpeedDial(i));
-            }
-        }
-    }
-
-    async handleLogout() {
-        try {
-            const response = await fetch('/api/auth/logout', { method: 'POST' });
-            if (response.ok) {
-                window.location.href = '/login.html';
-            }
-        } catch (error) {
-            console.error('Logout error:', error);
-            window.location.href = '/login.html';
-        }
-    }
-
-    async disconnect() {
-        if (this.liveKitClient) {
-            await this.liveKitClient.disconnect();
-        }
-        this.isConnected = false;
-        this.updateConnectionButton();
-        this.updateStatus('Disconnected');
-    }
-
-    updateUserInfo() {
-        if (!this.currentUser) return;
-        
-        const userNameEl = document.getElementById('user-name');
-        if (userNameEl) {
-            userNameEl.textContent = this.currentUser.displayName;
-        }
-        
-        const userAvatarEl = document.getElementById('user-avatar');
-        if (userAvatarEl) {
-            userAvatarEl.style.backgroundColor = this.currentUser.avatarColor;
-            userAvatarEl.textContent = this.currentUser.displayName.charAt(0).toUpperCase();
-        }
-    }
-
-    updateSpeedDialContacts() {
-        for (let i = 1; i <= 4; i++) {
-            const btn = document.getElementById(`dial-${i}`);
-            const contact = this.contacts.find(c => c.speed_dial_position === i);
-            
-            if (btn) {
-                if (contact) {
-                    const nameSpan = btn.querySelector('.contact-name');
-                    const numberSpan = btn.querySelector('.contact-number');
-                    
-                    if (nameSpan) nameSpan.textContent = contact.display_name;
-                    if (numberSpan) numberSpan.textContent = contact.username;
-                    
-                    btn.style.display = 'flex';
-                    btn.disabled = false;
-                } else {
-                    btn.style.display = 'none';
-                }
-            }
-        }
-    }
-
-    updateConnectionButton() {
-        const connectBtn = document.getElementById('connect-btn');
-        if (connectBtn) {
-            if (this.isConnected) {
-                connectBtn.textContent = 'Disconnect';
-                connectBtn.classList.add('connected');
-            } else {
-                connectBtn.textContent = 'Connect';
-                connectBtn.classList.remove('connected');
-            }
-        }
     }
 
     updateUI() {

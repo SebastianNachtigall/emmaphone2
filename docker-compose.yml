@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # LiveKit Server
+  livekit:
+    image: livekit/livekit-server:latest
+    ports:
+      - "7880:7880"     # WebSocket
+      - "7881:7881"     # WebSocket (TLS)
+      - "7882:7882"     # HTTP API
+    volumes:
+      - ./config/livekit.yaml:/etc/livekit.yaml
+      - livekit-data:/data
+    environment:
+      - LIVEKIT_CONFIG_FILE=/etc/livekit.yaml
+    command: --config /etc/livekit.yaml
+    restart: unless-stopped
+
+  # EmmaPhone2 Web Application
+  emmaphone:
+    build: .
+    ports:
+      - "3001:3001"     # HTTP
+      - "3443:3443"     # HTTPS
+    volumes:
+      - ./data:/app/data
+      - ./certs:/app/certs
+      - emmaphone-db:/app/data/db
+    environment:
+      - NODE_ENV=production
+      - LIVEKIT_URL=ws://livekit:7880
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-devkey}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-secret}
+      - DB_PATH=/app/data/db/emmaphone.db
+      - SESSION_SECRET=${SESSION_SECRET:-your-session-secret-change-this}
+    depends_on:
+      - livekit
+      - redis
+    restart: unless-stopped
+
+  # Redis for session storage and Socket.IO scaling
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+
+  # Optional: SIP Gateway for real phone calls
+  # sip-gateway:
+  #   image: drachtio/drachtio-server:latest
+  #   ports:
+  #     - "9022:9022"
+  #   volumes:
+  #     - ./config/drachtio.conf.xml:/etc/drachtio.conf.xml
+  #   restart: unless-stopped
+
+volumes:
+  livekit-data:
+  redis-data:
+  emmaphone-db:
+
+networks:
+  default:
+    name: emmaphone-network

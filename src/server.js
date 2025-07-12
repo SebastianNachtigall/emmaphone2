@@ -4,8 +4,12 @@ const http = require('http');
 const fs = require('fs');
 const cors = require('cors');
 const path = require('path');
+const session = require('express-session');
+const RedisStore = require('connect-redis')(session);
+const redis = require('redis');
 const { Server } = require('socket.io');
 const { AccessToken } = require('livekit-server-sdk');
+const DatabaseManager = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -15,16 +19,146 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
+// Initialize database
+const db = new DatabaseManager();
+
+// Initialize Redis client
+const redisClient = redis.createClient({
+  host: process.env.REDIS_HOST || 'redis',
+  port: process.env.REDIS_PORT || 6379
+});
+
+redisClient.on('error', (err) => {
+  console.error('Redis client error:', err);
+});
+
+redisClient.on('connect', () => {
+  console.log('Connected to Redis for session storage');
+});
+
+// Session configuration with Redis store
+app.use(session({
+  store: new RedisStore({ client: redisClient }),
+  secret: process.env.SESSION_SECRET || 'your-secret-key-change-this',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false, // Set to true in production with HTTPS
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Authentication middleware
+function requireAuth(req, res, next) {
+  console.log('Auth check - Session:', !!req.session, 'User:', !!req.session?.user);
+  if (req.session && req.session.user) {
+    return next();
+  } else {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+}
+
+// Optional auth middleware (allows both authenticated and unauthenticated)
+function optionalAuth(req, res, next) {
+  req.user = req.session && req.session.user ? req.session.user : null;
+  next();
+}
+
 // Store connected users for call signaling
 const connectedUsers = new Map(); // userId -> socketId
 const activeUsers = new Map();    // socketId -> userInfo
 
-app.get('/', (req, res) => {
+// Routes
+app.get('/', optionalAuth, (req, res) => {
+  console.log('📄 GET / - User authenticated:', !!req.user);
+  // If user is not authenticated, redirect to login
+  if (!req.user) {
+    console.log('🔀 Redirecting to login page');
+    return res.redirect('/login.html');
+  }
+  console.log('✅ Serving index.html to authenticated user:', req.user.username);
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
+// Authentication routes
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { username, displayName, password, pin, avatarColor } = req.body;
+    
+    if (!username || !displayName || !password) {
+      return res.status(400).json({ error: 'Username, display name, and password are required' });
+    }
+    
+    const user = await db.createUser(username, displayName, password, pin, avatarColor);
+    res.json({ success: true, user: { id: user.id, username: user.username, displayName: user.displayName } });
+    
+  } catch (error) {
+    console.error('Registration error:', error);
+    if (error.message === 'Username already exists') {
+      res.status(409).json({ error: 'Username already exists' });
+    } else {
+      res.status(500).json({ error: 'Registration failed' });
+    }
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    console.log('Login attempt for:', username);
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required' });
+    }
+    
+    const user = await db.validateUser(username, password);
+    if (!user) {
+      console.log('Login failed for:', username);
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+    
+    // Store user in session
+    req.session.user = user;
+    console.log('User logged in:', user.username, 'Session ID:', req.sessionID);
+    
+    res.json({ 
+      success: true, 
+      user: {
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        avatarColor: user.avatarColor
+      }
+    });
+    
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ error: 'Logout failed' });
+    }
+    res.json({ success: true });
+  });
+});
+
+app.get('/api/auth/me', requireAuth, (req, res) => {
+  console.log('GET /api/auth/me - User:', req.session.user.username);
+  res.json(req.session.user);
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // LiveKit token generation endpoint
-app.post('/api/livekit-token', async (req, res) => {
+app.post('/api/livekit-token', requireAuth, async (req, res) => {
   try {
     const { roomName, participantName } = req.body;
     
@@ -67,10 +201,22 @@ app.post('/api/livekit-token', async (req, res) => {
   }
 });
 
-// Call initiation endpoint
-app.post('/api/initiate-call', async (req, res) => {
+// User contacts endpoint
+app.get('/api/contacts', requireAuth, (req, res) => {
   try {
-    const { fromUser, toUser, contactName } = req.body;
+    const contacts = db.getUserContacts(req.session.user.id);
+    res.json(contacts);
+  } catch (error) {
+    console.error('Error fetching contacts:', error);
+    res.status(500).json({ error: 'Failed to fetch contacts' });
+  }
+});
+
+// Call initiation endpoint
+app.post('/api/initiate-call', requireAuth, async (req, res) => {
+  try {
+    const { toUser, contactName } = req.body;
+    const fromUser = req.session.user.id; // Use authenticated user ID
     
     if (!fromUser || !toUser) {
       return res.status(400).json({ error: 'fromUser and toUser are required' });
@@ -86,17 +232,21 @@ app.post('/api/initiate-call', async (req, res) => {
     const roomName = `call-${fromUser}-to-${toUser}-${Date.now()}`;
     
     // Generate tokens for both users
-    const callerToken = await generateToken(roomName, fromUser);
+    const callerToken = await generateToken(roomName, req.session.user.username);
     const calleeToken = await generateToken(roomName, toUser);
+    
+    // Log the call
+    const callLogId = db.logCall(fromUser, toUser, roomName, 'initiated');
 
     console.log(`Call initiated from ${fromUser} to ${toUser} in room ${roomName}`);
 
     // Send call invitation to target user
     io.to(targetSocketId).emit('incoming-call', {
       from: fromUser,
-      fromName: fromUser,
+      fromName: req.session.user.displayName || req.session.user.username,
       roomName: roomName,
-      calleeToken: calleeToken
+      calleeToken: calleeToken,
+      callLogId: callLogId
     });
 
     res.json({
@@ -147,13 +297,15 @@ try {
   console.log('HTTPS not available, SSL certificates not found. Using HTTP only.');
 }
 
-// Setup Socket.IO on HTTPS server (preferred) or HTTP server
-const io = new Server(httpsServer || httpServer, {
+// Setup Socket.IO on HTTP server (HTTPS certs not available in dev)
+const io = new Server(httpServer, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"]
   }
 });
+
+console.log('Socket.IO server attached to HTTP server on port', PORT);
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {

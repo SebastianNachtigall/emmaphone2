@@ -3,14 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EmmaPhone2 - Kid-Friendly SIP Client</title>
+    <title>EmmaPhone2 - Kid-Friendly WebRTC Client</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>EmmaPhone2</h1>
-            <div class="status" id="status">Ready</div>
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar">U</div>
+                <div class="user-details">
+                    <h2 id="user-name">Loading...</h2>
+                    <div class="status" id="status">Ready</div>
+                </div>
+                <button class="logout-btn" id="logout-btn" title="Logout">⏻</button>
+            </div>
         </header>
 
         <main>
@@ -45,25 +51,9 @@
             </div>
         </main>
 
-        <div class="sip-config" id="sip-config">
-            <h3>SIP Configuration</h3>
-            <div class="demo-info">
-                <p><strong>LiveKit SIP Server:</strong> WebRTC-SIP bridge running locally</p>
-                <p><strong>Users:</strong> 1001/1234, 1002/1234</p>
-            </div>
-            <div class="config-row">
-                <label for="sip-server">SIP Server:</label>
-                <input type="text" id="sip-server" value="localhost" placeholder="sip.example.com">
-            </div>
-            <div class="config-row">
-                <label for="sip-user">Username:</label>
-                <input type="text" id="sip-user" value="1001" placeholder="1001">
-            </div>
-            <div class="config-row">
-                <label for="sip-password">Password:</label>
-                <input type="password" id="sip-password" value="1234" placeholder="password">
-            </div>
-            <button id="register-btn">Connect to LiveKit</button>
+        <div class="connection-section">
+            <button id="connect-btn" class="connect-btn">Connect to LiveKit</button>
+            <p class="connection-info">Connect to start making calls</p>
         </div>
     </div>
 
@@ -89,6 +79,6 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="lib/livekit-client.umd.min.js"></script>
     <script src="js/liveKitClient.js"></script>
-    <script src="js/main.js?v=3"></script>
+    <script src="js/main-simple.js?v=1"></script>
 </body>
 </html>
