@@ -20,6 +20,11 @@ app.use(express.json());
 
 // Create middleware for serving static files with auth protection
 const serveAuthenticatedStatic = (req, res, next) => {
+  // Skip middleware for API routes - they handle their own auth
+  if (req.path.startsWith('/api/') || req.path.startsWith('/socket.io/')) {
+    return next();
+  }
+  
   // Allow public assets that don't need authentication
   const publicPaths = [
     '/css/auth.css',
@@ -36,12 +41,9 @@ const serveAuthenticatedStatic = (req, res, next) => {
     return express.static('public')(req, res, next);
   }
   
-  // For all other files, check authentication
+  // For all other static files, check authentication
   if (!req.session || !req.session.user) {
-    // Not authenticated, redirect to login
-    if (req.path.endsWith('.js') || req.path.endsWith('.css') || req.path.endsWith('.html')) {
-      return res.redirect('/login.html');
-    }
+    // Not authenticated, redirect to login for static files
     return res.redirect('/login.html');
   }
   
