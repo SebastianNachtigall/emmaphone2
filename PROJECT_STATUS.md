@@ -50,15 +50,19 @@ Kid-friendly WebRTC calling application using LiveKit, now with complete user ac
 ## Completed Features
 - ✅ **User Authentication**: Registration, login, session management
 - ✅ **Database Integration**: Users, contacts, friend groups, call logs
+- ✅ **Friend Group Management**: Complete UI for creating/joining/managing groups with invite codes
 - ✅ **Docker Containerization**: Production + development environments
-- ✅ **Updated Phone UI**: Account-based contacts, user profiles
+- ✅ **Updated Phone UI**: Account-based contacts, user profiles, friend group integration
 - ✅ **Security**: Session-based auth, protected API endpoints
 - ✅ **Demo Data**: 4 test users with pre-configured contacts
 
-## Next Steps (Not Started)
-- 🔄 **Friend Group Management**: UI for creating/joining friend groups
-- 🔄 **SIP Integration**: Real phone calling capability
+## Next Steps (Available for Implementation)
+- 🔄 **Contact Management**: Add/remove/edit contacts within friend groups
+- 🔄 **Call History**: Enhanced call logging and history viewing
+- 🔄 **SIP Integration**: Real phone calling capability for external numbers
 - 🔄 **Production Deployment**: Cloud hosting setup
+- 🔄 **Mobile Responsiveness**: Optimize UI for mobile devices
+- 🔄 **Group Calling**: Conference calls within friend groups
 
 ## How to Continue in New Session
 

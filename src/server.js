@@ -305,12 +305,18 @@ app.post('/api/initiate-call', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Target user not connected' });
     }
 
+    // Get target user's username from database
+    const targetUser = db.getUserById(toUser);
+    if (!targetUser) {
+      return res.status(404).json({ error: 'Target user not found' });
+    }
+
     // Create unique room for this call
     const roomName = `call-${fromUser}-to-${toUser}-${Date.now()}`;
     
     // Generate tokens for both users
     const callerToken = await generateToken(roomName, req.session.user.username);
-    const calleeToken = await generateToken(roomName, toUser);
+    const calleeToken = await generateToken(roomName, targetUser.username);
     
     // Log the call
     const callLogId = db.logCall(fromUser, toUser, roomName, 'initiated');

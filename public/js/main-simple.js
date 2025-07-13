@@ -7,6 +7,9 @@ class EmmaPhone2 {
         this.currentUser = null;
         this.authChecked = false;
         this.groups = [];
+        this.contacts = [];
+        this.socket = null;
+        this.livekitClient = null;
         this.init();
     }
 
@@ -114,8 +117,10 @@ class EmmaPhone2 {
                 console.log('✅ Authenticated user:', this.currentUser);
                 this.updateUI();
                 this.updateStatus('Ready - Authentication working');
-                // Load friend groups after successful authentication
+                // Load friend groups and contacts after successful authentication
                 this.loadGroups();
+                this.loadContacts();
+                this.initializeSocket();
             } else {
                 console.log('❌ Not authenticated');
                 this.updateStatus('Not authenticated - would redirect to login');
@@ -174,6 +179,217 @@ class EmmaPhone2 {
                 window.location.href = '/login.html';
             }, 2000);
         }
+    }
+
+    // Contact Management Methods
+    async loadContacts() {
+        try {
+            const response = await fetch('/api/contacts');
+            if (response.ok) {
+                this.contacts = await response.json();
+                console.log('Loaded contacts:', this.contacts);
+                this.renderContacts();
+            } else {
+                this.contacts = [];
+                this.renderContacts();
+            }
+        } catch (error) {
+            console.error('Error loading contacts:', error);
+            this.contacts = [];
+            this.renderContacts();
+        }
+    }
+
+    renderContacts() {
+        // Render speed dial buttons with real contacts
+        for (let i = 1; i <= 4; i++) {
+            const dialBtn = document.getElementById(`dial-${i}`);
+            if (!dialBtn) continue;
+
+            // Find contact with this speed dial position
+            const contact = this.contacts.find(c => c.speed_dial_position === i);
+            
+            if (contact) {
+                const nameEl = dialBtn.querySelector('.contact-name');
+                const numberEl = dialBtn.querySelector('.contact-number');
+                
+                if (nameEl) nameEl.textContent = contact.display_name;
+                if (numberEl) numberEl.textContent = contact.username;
+                
+                // Store contact data for calling
+                dialBtn.dataset.contactUserId = contact.contact_user_id;
+                dialBtn.dataset.contactName = contact.display_name;
+                dialBtn.dataset.contactUsername = contact.username;
+                
+                // Enable button and add click handler
+                dialBtn.disabled = false;
+                dialBtn.addEventListener('click', () => this.initiateCall(contact));
+            } else {
+                // No contact for this position
+                const nameEl = dialBtn.querySelector('.contact-name');
+                const numberEl = dialBtn.querySelector('.contact-number');
+                
+                if (nameEl) nameEl.textContent = `Empty Slot ${i}`;
+                if (numberEl) numberEl.textContent = 'No Contact';
+                
+                dialBtn.disabled = true;
+            }
+        }
+    }
+
+    // Socket.IO initialization
+    initializeSocket() {
+        if (this.socket) return; // Already initialized
+        
+        console.log('🔌 Initializing Socket.IO');
+        this.socket = io();
+        
+        this.socket.on('connect', () => {
+            console.log('✅ Socket.IO connected');
+            // Register this user for call signaling
+            this.socket.emit('register-user', { userId: this.currentUser.id });
+        });
+        
+        this.socket.on('user-registered', (data) => {
+            console.log('📋 User registered for calls:', data);
+        });
+        
+        this.socket.on('incoming-call', (callData) => {
+            console.log('📞 Incoming call:', callData);
+            this.showIncomingCallModal(callData);
+        });
+        
+        this.socket.on('call-rejected', (data) => {
+            console.log('❌ Call rejected by:', data.by);
+            this.updateStatus('Call rejected');
+        });
+        
+        this.socket.on('disconnect', () => {
+            console.log('❌ Socket.IO disconnected');
+        });
+    }
+
+    // Call initiation
+    async initiateCall(contact) {
+        console.log('📞 Initiating call to:', contact);
+        this.updateStatus(`Calling ${contact.display_name}...`);
+        
+        try {
+            const response = await fetch('/api/initiate-call', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    toUser: contact.contact_user_id,
+                    contactName: contact.display_name
+                })
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                console.log('✅ Call initiated:', result);
+                // Join LiveKit room as caller
+                await this.joinLiveKitRoom(result.roomName, result.callerToken);
+            } else {
+                const error = await response.json();
+                console.error('❌ Call initiation failed:', error);
+                this.updateStatus(`Call failed: ${error.error}`);
+            }
+        } catch (error) {
+            console.error('❌ Call error:', error);
+            this.updateStatus('Call failed - network error');
+        }
+    }
+
+    // Incoming call handling
+    showIncomingCallModal(callData) {
+        const modal = document.getElementById('incoming-call-modal');
+        const callerName = document.getElementById('caller-name');
+        const acceptBtn = document.getElementById('accept-call-btn');
+        const rejectBtn = document.getElementById('reject-call-btn');
+        
+        if (callerName) callerName.textContent = callData.fromName;
+        if (modal) modal.style.display = 'flex';
+        
+        // Handle accept
+        if (acceptBtn) {
+            acceptBtn.onclick = async () => {
+                console.log('✅ Call accepted');
+                modal.style.display = 'none';
+                
+                // Join LiveKit room as callee
+                await this.joinLiveKitRoom(callData.roomName, callData.calleeToken);
+                
+                // Notify caller that call was accepted
+                this.socket.emit('call-response', {
+                    accepted: true,
+                    callData: callData
+                });
+            };
+        }
+        
+        // Handle reject
+        if (rejectBtn) {
+            rejectBtn.onclick = () => {
+                console.log('❌ Call rejected');
+                modal.style.display = 'none';
+                
+                // Notify caller that call was rejected
+                this.socket.emit('call-response', {
+                    accepted: false,
+                    callData: callData
+                });
+            };
+        }
+    }
+
+    // LiveKit room joining
+    async joinLiveKitRoom(roomName, token) {
+        console.log('🎯 Joining LiveKit room:', roomName);
+        this.updateStatus('Connecting to call...');
+        
+        try {
+            // Initialize LiveKit client if not done
+            if (!this.livekitClient) {
+                this.livekitClient = new LiveKitClient();
+            }
+            
+            // Connect to room
+            await this.livekitClient.connect('ws://localhost:7880', token);
+            console.log('✅ Connected to LiveKit room');
+            this.updateStatus('In call - Connected');
+            
+            // Enable hangup button
+            const hangupBtn = document.getElementById('hangup-btn');
+            if (hangupBtn) {
+                hangupBtn.disabled = false;
+                hangupBtn.onclick = () => this.hangupCall();
+            }
+            
+        } catch (error) {
+            console.error('❌ Failed to join LiveKit room:', error);
+            this.updateStatus('Call connection failed');
+        }
+    }
+
+    // Hangup call
+    hangupCall() {
+        console.log('📴 Hanging up call');
+        
+        if (this.livekitClient) {
+            this.livekitClient.disconnect();
+            this.livekitClient = null;
+        }
+        
+        // Disable hangup button
+        const hangupBtn = document.getElementById('hangup-btn');
+        if (hangupBtn) {
+            hangupBtn.disabled = true;
+            hangupBtn.onclick = null;
+        }
+        
+        this.updateStatus('Call ended');
     }
 
     // Friend Group Management Methods

@@ -8,6 +8,7 @@ services:
       - "7880:7880"     # WebSocket
       - "7881:7881"     # WebSocket (TLS)
       - "7882:7882"     # HTTP API
+      - "50000-50020:50000-50020/udp"  # WebRTC port range
     volumes:
       - ./config/livekit.yaml:/etc/livekit.yaml
       - livekit-data:/data
