@@ -182,8 +182,8 @@ app.post('/api/livekit-token', requireAuth, async (req, res) => {
     }
 
     // LiveKit credentials from our configuration
-    const apiKey = 'APIKeySecret_1234567890abcdef';
-    const apiSecret = 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
+    const apiKey = process.env.LIVEKIT_API_KEY || 'APIKeySecret_1234567890abcdef';
+    const apiSecret = process.env.LIVEKIT_API_SECRET || 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
     
     const at = new AccessToken(apiKey, apiSecret, {
       identity: participantName,
@@ -489,8 +489,8 @@ app.post('/api/initiate-call', requireAuth, async (req, res) => {
 
 // Helper function to generate tokens
 async function generateToken(roomName, participantName) {
-  const apiKey = 'APIKeySecret_1234567890abcdef';
-  const apiSecret = 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
+  const apiKey = process.env.LIVEKIT_API_KEY || 'APIKeySecret_1234567890abcdef';
+  const apiSecret = process.env.LIVEKIT_API_SECRET || 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890';
   
   const at = new AccessToken(apiKey, apiSecret, {
     identity: participantName,
