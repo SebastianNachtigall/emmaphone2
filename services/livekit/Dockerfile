@@ -1,7 +1,7 @@
 FROM livekit/livekit-server:latest
 
-# Install Python for our debug server
-RUN apt-get update && apt-get install -y python3 && rm -rf /var/lib/apt/lists/*
+# Install Python for our debug server (Alpine uses apk, not apt-get)
+RUN apk add --no-cache python3
 
 # Expose the necessary ports
 EXPOSE 7880
