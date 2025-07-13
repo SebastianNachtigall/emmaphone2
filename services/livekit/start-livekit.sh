@@ -24,12 +24,17 @@ export PORT=${PORT:-7880}
 # Use Railway Redis URL if available
 if [ -n "$REDIS_URL" ]; then
     echo "Using Railway Redis: $REDIS_URL"
-    # Extract host and port from Redis URL for LiveKit config
+    
+    # Extract components from Redis URL for LiveKit config
     # Format: redis://default:password@host:port
+    REDIS_USER=$(echo $REDIS_URL | sed -n 's|redis://\([^:]*\):.*|\1|p')
+    REDIS_PASS=$(echo $REDIS_URL | sed -n 's|redis://[^:]*:\([^@]*\)@.*|\1|p')
     REDIS_HOST=$(echo $REDIS_URL | sed -n 's|redis://[^@]*@\([^:]*\):.*|\1|p')
     REDIS_PORT=$(echo $REDIS_URL | sed -n 's|redis://[^@]*@[^:]*:\([0-9]*\).*|\1|p')
     
     # Debug the parsing
+    echo "Parsed Redis User: '$REDIS_USER'"
+    echo "Parsed Redis Pass: [HIDDEN]"
     echo "Parsed Redis Host: '$REDIS_HOST'"
     echo "Parsed Redis Port: '$REDIS_PORT'"
     
@@ -38,14 +43,20 @@ if [ -n "$REDIS_URL" ]; then
         echo "Failed to parse Redis URL, falling back to defaults"
         export REDIS_HOST=redis
         export REDIS_PORT=6379
+        export REDIS_USER=""
+        export REDIS_PASS=""
     else
         export REDIS_HOST="$REDIS_HOST"
         export REDIS_PORT="$REDIS_PORT"
+        export REDIS_USER="$REDIS_USER"
+        export REDIS_PASS="$REDIS_PASS"
     fi
 else
     echo "No Redis URL provided, using default redis:6379"
     export REDIS_HOST=redis
     export REDIS_PORT=6379
+    export REDIS_USER=""
+    export REDIS_PASS=""
 fi
 
 # Generate secure API keys if not provided
@@ -70,6 +81,8 @@ keys:
 
 redis:
   address: "$REDIS_HOST:$REDIS_PORT"
+  username: "$REDIS_USER"
+  password: "$REDIS_PASS"
 
 rtc:
   tcp_port: 7881
@@ -94,7 +107,7 @@ echo "Binding to 0.0.0.0:$PORT"
 
 echo "=== CONFIG FILE DEBUG ==="
 echo "Redis section of config:"
-grep -A 2 "redis:" /tmp/livekit-runtime.yaml
+grep -A 4 "redis:" /tmp/livekit-runtime.yaml
 
 # Start LiveKit server
 exec livekit-server --config /tmp/livekit-runtime.yaml
