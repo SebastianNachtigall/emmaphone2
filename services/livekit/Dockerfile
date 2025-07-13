@@ -5,11 +5,9 @@ EXPOSE 7880
 EXPOSE 7881
 EXPOSE 50000-60000/udp
 
-# Start LiveKit server with inline configuration
-CMD ["livekit-server", \
-     "--bind", "0.0.0.0", \
-     "--port", "7880", \
-     "--rtc-tcp-port", "7881", \
-     "--rtc-port-range-start", "50000", \
-     "--rtc-port-range-end", "50100", \
-     "--keys", "APIKeySecret_1234567890abcdef:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"]
+# Add debugging script
+COPY debug-start.sh /debug-start.sh
+RUN chmod +x /debug-start.sh
+
+# Start with debugging
+CMD ["/debug-start.sh"]
