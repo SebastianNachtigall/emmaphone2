@@ -1,12 +1,26 @@
-FROM livekit/livekit-server:latest
+# Try a different approach - use Alpine and install LiveKit manually
+FROM alpine:latest
 
-# Install bash for debugging
-RUN apk add --no-cache bash
+# Install required packages
+RUN apk add --no-cache \
+    bash \
+    curl \
+    wget \
+    ca-certificates
 
-# Copy debug script
-COPY debug-with-override.sh /debug-with-override.sh
-RUN chmod +x /debug-with-override.sh
+# Download and install LiveKit server
+RUN wget -O /tmp/livekit-server.tar.gz https://github.com/livekit/livekit/releases/download/v1.4.3/livekit_1.4.3_linux_amd64.tar.gz && \
+    tar -xzf /tmp/livekit-server.tar.gz -C /usr/local/bin/ && \
+    chmod +x /usr/local/bin/livekit-server && \
+    rm /tmp/livekit-server.tar.gz
 
-# Override ENTRYPOINT completely and use our script
-ENTRYPOINT []
-CMD ["/debug-with-override.sh"]
+# Copy our config and scripts
+COPY livekit.yaml /etc/livekit.yaml
+COPY start-livekit.sh /start-livekit.sh
+RUN chmod +x /start-livekit.sh
+
+# Expose the default LiveKit ports
+EXPOSE 7880 7881
+
+# Use our startup script
+CMD ["/start-livekit.sh"]

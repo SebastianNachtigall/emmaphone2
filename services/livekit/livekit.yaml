@@ -1,0 +1,50 @@
+port: 7880
+bind_addresses:
+  - "0.0.0.0"
+
+# API keys - these will be overridden by environment variables in Railway
+keys:
+  APIKeySecret_1234567890abcdef: abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+
+# Redis for distributed mode (use Railway Redis URL if available)
+redis:
+  address: redis:6379
+  
+# RTC configuration for WebRTC
+rtc:
+  # Use STUN servers for NAT traversal
+  ice_servers:
+    - urls: 
+      - "stun:stun.l.google.com:19302"
+      - "stun:stun1.l.google.com:19302"
+  
+  # Port ranges for WebRTC (Railway will handle external routing)
+  port_range_start: 50000
+  port_range_end: 60000
+  
+  # Use Railway's external IP
+  use_external_ip: true
+
+# Logging
+log_level: info
+
+# Development/demo settings
+development: true
+
+# Room settings
+room:
+  # Allow empty rooms to stay open for a short time
+  empty_timeout: 300s
+  # Auto-create rooms
+  auto_create: true
+
+# Audio settings optimized for voice calls
+audio:
+  # Enable audio processing
+  update_speaker: true
+  
+# Webhook settings (optional - can be configured later)
+# webhook:
+#   api_key: your_webhook_api_key
+#   urls:
+#     - http://your-app/webhook
