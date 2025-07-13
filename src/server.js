@@ -207,7 +207,7 @@ app.post('/api/livekit-token', requireAuth, async (req, res) => {
       token,
       roomName,
       participantName,
-      wsUrl: 'ws://localhost:7880'
+      wsUrl: process.env.LIVEKIT_URL || 'ws://localhost:7880'
     });
     
   } catch (error) {
@@ -471,7 +471,8 @@ app.post('/api/initiate-call', requireAuth, async (req, res) => {
       fromName: req.session.user.displayName || req.session.user.username,
       roomName: roomName,
       calleeToken: calleeToken,
-      callLogId: callLogId
+      callLogId: callLogId,
+      wsUrl: process.env.LIVEKIT_URL || 'ws://localhost:7880'
     });
 
     res.json({

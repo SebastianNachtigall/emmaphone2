@@ -325,7 +325,7 @@ class EmmaPhone2 {
                 const result = await response.json();
                 console.log('✅ Call initiated:', result);
                 // Join LiveKit room as caller
-                await this.joinLiveKitRoom(result.roomName, result.callerToken);
+                await this.joinLiveKitRoom(result.roomName, result.callerToken, result.wsUrl);
             } else {
                 const error = await response.json();
                 console.error('❌ Call initiation failed:', error);
@@ -354,7 +354,7 @@ class EmmaPhone2 {
                 modal.style.display = 'none';
                 
                 // Join LiveKit room as callee
-                await this.joinLiveKitRoom(callData.roomName, callData.calleeToken);
+                await this.joinLiveKitRoom(callData.roomName, callData.calleeToken, callData.wsUrl);
                 
                 // Notify caller that call was accepted
                 this.socket.emit('call-response', {
@@ -380,7 +380,7 @@ class EmmaPhone2 {
     }
 
     // LiveKit room joining
-    async joinLiveKitRoom(roomName, token) {
+    async joinLiveKitRoom(roomName, token, wsUrl = 'ws://localhost:7880') {
         console.log('🎯 Joining LiveKit room:', roomName);
         this.updateStatus('Connecting to call...');
         
@@ -391,7 +391,7 @@ class EmmaPhone2 {
             }
             
             // Connect to room
-            await this.livekitClient.connect('ws://localhost:7880', token);
+            await this.livekitClient.connect(wsUrl, token);
             console.log('✅ Connected to LiveKit room');
             this.updateStatus('In call - Connected');
             
