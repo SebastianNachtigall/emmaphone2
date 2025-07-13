@@ -1,13 +1,14 @@
-FROM livekit/livekit-server:latest
+FROM alpine:latest
+
+# Install basic tools and Python for a simple server
+RUN apk add --no-cache python3 curl bash
 
 # Expose the necessary ports
 EXPOSE 7880
-EXPOSE 7881
-EXPOSE 50000-60000/udp
 
-# Add debugging script
-COPY debug-start.sh /debug-start.sh
-RUN chmod +x /debug-start.sh
+# Create a simple test server
+COPY test-server.py /test-server.py
+RUN chmod +x /test-server.py
 
-# Start with debugging
-CMD ["/debug-start.sh"]
+# Start test server
+CMD ["python3", "/test-server.py"]
