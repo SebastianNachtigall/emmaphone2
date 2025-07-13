@@ -123,6 +123,6 @@ grep -A 4 "redis:" /tmp/livekit-runtime.yaml
 echo "Starting LiveKit with Redis disabled via command line..."
 exec livekit-server \
     --config /tmp/livekit-runtime.yaml \
-    --keys "$LIVEKIT_API_KEY:$LIVEKIT_API_SECRET" \
+    --keys "$LIVEKIT_API_KEY: $LIVEKIT_API_SECRET" \
     --port $PORT \
     --bind 0.0.0.0
