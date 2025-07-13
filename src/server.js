@@ -22,13 +22,10 @@ app.use(express.static('public'));
 // Initialize database
 const db = new DatabaseManager();
 
-// Initialize Redis client
+// Initialize Redis client (v3.x API)
 let redisClient;
 if (process.env.REDIS_URL) {
-  redisClient = redis.createClient({
-    url: process.env.REDIS_URL,
-    legacyMode: false
-  });
+  redisClient = redis.createClient(process.env.REDIS_URL);
 } else {
   redisClient = redis.createClient({
     host: process.env.REDIS_HOST || 'redis',
@@ -43,13 +40,6 @@ redisClient.on('error', (err) => {
 redisClient.on('connect', () => {
   console.log('Connected to Redis for session storage');
 });
-
-// Connect to Redis
-if (process.env.REDIS_URL || process.env.REDIS_HOST) {
-  redisClient.connect().catch(err => {
-    console.error('Failed to connect to Redis:', err);
-  });
-}
 
 // Session configuration with optional Redis store
 const sessionConfig = {
