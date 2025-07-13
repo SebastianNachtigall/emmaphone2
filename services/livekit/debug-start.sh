@@ -1,47 +1,34 @@
 #!/bin/bash
 
-echo "====== LIVEKIT DEBUG START ======"
-echo "Date: $(date)"
-echo "PWD: $(pwd)"
-echo "User: $(id)"
-echo ""
+# Output to stderr so Railway sees it
+exec 1>&2
 
-echo "====== ENVIRONMENT ======"
-env | sort
-echo ""
+echo "RAILWAY-DEBUG: ====== LIVEKIT DEBUG START ======" 
+echo "RAILWAY-DEBUG: Date: $(date)"
+echo "RAILWAY-DEBUG: PWD: $(pwd)"
+echo "RAILWAY-DEBUG: User: $(id)"
 
-echo "====== FILESYSTEM CHECK ======"
-echo "Root contents:"
-ls -la /
-echo ""
-echo "Usr/bin contents (livekit related):"
-ls -la /usr/bin/livekit* 2>/dev/null || echo "No livekit binaries found"
-echo ""
+echo "RAILWAY-DEBUG: ====== ENVIRONMENT ======"
+env | grep -E "(PORT|RAILWAY|LIVEKIT)" | sort
 
-echo "====== BINARY CHECK ======"
-which livekit-server
-echo "Version check:"
-livekit-server --version 2>&1
-echo ""
+echo "RAILWAY-DEBUG: ====== BINARY CHECK ======"
+which livekit-server || echo "RAILWAY-DEBUG: livekit-server not found"
+livekit-server --version 2>&1 || echo "RAILWAY-DEBUG: version failed"
 
-echo "====== HELP OUTPUT ======"
-echo "Getting help to see available options:"
-livekit-server --help 2>&1 | head -30
-echo ""
+echo "RAILWAY-DEBUG: ====== HELP CHECK ======"
+livekit-server --help 2>&1 | head -10 || echo "RAILWAY-DEBUG: help failed"
 
-echo "====== ATTEMPTING STARTUP ======"
-echo "Command: livekit-server --keys [KEY] --bind 0.0.0.0 --port 7880 --log-level debug"
-echo "Starting in 3 seconds..."
-sleep 3
+echo "RAILWAY-DEBUG: ====== ATTEMPTING MINIMAL START ======"
+echo "RAILWAY-DEBUG: About to run livekit-server with keys..."
 
-# Use strace to see what system calls are being made
-echo "Starting with strace to see what's happening..."
-timeout 30 strace -e trace=openat,read livekit-server \
-  --keys "APIKeySecret_1234567890abcdef:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890" \
-  --bind 0.0.0.0 \
-  --port 7880 \
-  --log-level debug 2>&1
+# Try the absolute minimal command to see what happens
+livekit-server --keys "test:test" 2>&1 || {
+    echo "RAILWAY-DEBUG: Simple keys failed with exit code $?"
+}
 
-echo ""
-echo "====== EXIT CODE: $? ======"
-echo "Debug complete. Container will now exit."
+echo "RAILWAY-DEBUG: ====== TRYING REAL KEYS ======"
+livekit-server --keys "APIKeySecret_1234567890abcdef:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890" 2>&1 || {
+    echo "RAILWAY-DEBUG: Real keys failed with exit code $?"
+}
+
+echo "RAILWAY-DEBUG: ====== DEBUG COMPLETE ======"
