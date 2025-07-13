@@ -63,10 +63,10 @@ rtc:
   tcp_port: 7881
   port_range_start: 50000
   port_range_end: 60000
-  use_external_ip: true
+  use_external_ip: false
   stun_servers:
-    - "stun:stun.l.google.com:19302"
-    - "stun:stun1.l.google.com:19302"
+    - "stun.l.google.com:19302"
+    - "stun1.l.google.com:19302"
 
 log_level: info
 development: true
