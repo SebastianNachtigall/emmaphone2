@@ -60,23 +60,20 @@ redis:
   address: $REDIS_HOST:$REDIS_PORT
 
 rtc:
-  ice_servers:
-    - urls: 
-      - "stun:stun.l.google.com:19302"
-      - "stun:stun1.l.google.com:19302"
+  tcp_port: 7881
   port_range_start: 50000
   port_range_end: 60000
   use_external_ip: true
+  stun_servers:
+    - "stun:stun.l.google.com:19302"
+    - "stun:stun1.l.google.com:19302"
 
 log_level: info
 development: true
 
 room:
-  empty_timeout: 300s
+  empty_timeout: 300
   auto_create: true
-
-audio:
-  update_speaker: true
 EOF
 
 echo "=== Starting LiveKit Server ==="

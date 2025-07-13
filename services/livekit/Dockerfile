@@ -6,7 +6,8 @@ RUN apk add --no-cache \
     bash \
     curl \
     wget \
-    ca-certificates
+    ca-certificates \
+    openssl
 
 # Download and install LiveKit server
 RUN wget -O /tmp/livekit-server.tar.gz https://github.com/livekit/livekit/releases/download/v1.4.3/livekit_1.4.3_linux_amd64.tar.gz && \
