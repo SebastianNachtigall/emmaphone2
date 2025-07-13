@@ -20,8 +20,8 @@ app.use(express.json());
 
 // Create middleware for serving static files with auth protection
 const serveAuthenticatedStatic = (req, res, next) => {
-  // Skip middleware for API routes - they handle their own auth
-  if (req.path.startsWith('/api/') || req.path.startsWith('/socket.io/')) {
+  // Skip middleware for API routes and root route - they handle their own logic
+  if (req.path.startsWith('/api/') || req.path.startsWith('/socket.io/') || req.path === '/') {
     return next();
   }
   
@@ -120,7 +120,10 @@ const activeUsers = new Map();    // socketId -> userInfo
 
 // Routes
 app.get('/', optionalAuth, (req, res) => {
-  console.log('📄 GET / - User authenticated:', !!req.user);
+  console.log('📄 GET / - Session exists:', !!req.session);
+  console.log('📄 GET / - Session user:', req.session?.user?.username || 'none');
+  console.log('📄 GET / - req.user set by middleware:', !!req.user);
+  
   // If user is not authenticated, redirect to login
   if (!req.user) {
     console.log('🔀 Redirecting to login page');
