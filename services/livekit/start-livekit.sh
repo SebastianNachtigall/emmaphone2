@@ -69,7 +69,7 @@ keys:
   $LIVEKIT_API_KEY: $LIVEKIT_API_SECRET
 
 redis:
-  address: $REDIS_HOST:$REDIS_PORT
+  address: "$REDIS_HOST:$REDIS_PORT"
 
 rtc:
   tcp_port: 7881
@@ -91,6 +91,10 @@ EOF
 echo "=== Starting LiveKit Server ==="
 echo "Config file: /tmp/livekit-runtime.yaml"
 echo "Binding to 0.0.0.0:$PORT"
+
+echo "=== CONFIG FILE DEBUG ==="
+echo "Redis section of config:"
+grep -A 2 "redis:" /tmp/livekit-runtime.yaml
 
 # Start LiveKit server
 exec livekit-server --config /tmp/livekit-runtime.yaml
