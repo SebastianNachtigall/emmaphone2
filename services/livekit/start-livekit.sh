@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "=== LiveKit Server Starting ==="
+echo "=== LiveKit Server Starting (Test Deploy) ==="
 echo "Date: $(date)"
 echo "Port: ${PORT:-7880}"
 
