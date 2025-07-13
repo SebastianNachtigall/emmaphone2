@@ -18,51 +18,6 @@ const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
 app.use(cors());
 app.use(express.json());
 
-// Create middleware for serving static files with auth protection
-const serveAuthenticatedStatic = (req, res, next) => {
-  // Skip middleware for API routes and root route - they handle their own logic
-  if (req.path.startsWith('/api/') || req.path.startsWith('/socket.io/') || req.path === '/') {
-    return next();
-  }
-  
-  console.log(`🔍 Static middleware: ${req.path} - Session: ${!!req.session} - User: ${req.session?.user?.username || 'none'}`);
-  
-  // Allow public assets that don't need authentication
-  const publicPaths = [
-    '/css/auth.css',
-    '/css/style.css', // Needed for login page base styles
-    '/js/auth.js',
-    '/login.html',
-    '/favicon.ico'
-  ];
-  
-  // Allow all JS/CSS files for authenticated users, but check session first
-  const isStaticAsset = req.path.endsWith('.js') || req.path.endsWith('.css') || req.path.endsWith('.html');
-  
-  if (isStaticAsset && req.session && req.session.user) {
-    console.log(`✅ Serving authenticated asset: ${req.path}`);
-    return express.static('public')(req, res, next);
-  }
-  
-  const isPublicPath = publicPaths.some(path => req.path === path);
-  
-  if (isPublicPath) {
-    console.log(`🌐 Serving public asset: ${req.path}`);
-    return express.static('public')(req, res, next);
-  }
-  
-  // For all other static files, check authentication
-  if (!req.session || !req.session.user) {
-    console.log(`🔀 Redirecting unauthenticated request: ${req.path}`);
-    return res.redirect('/login.html');
-  }
-  
-  console.log(`📄 Serving other authenticated file: ${req.path}`);
-  return express.static('public')(req, res, next);
-};
-
-app.use(serveAuthenticatedStatic);
-
 // Initialize database
 const db = new DatabaseManager();
 
@@ -106,6 +61,51 @@ if (process.env.REDIS_URL || process.env.REDIS_HOST) {
 }
 
 app.use(session(sessionConfig));
+
+// Create middleware for serving static files with auth protection (AFTER session middleware)
+const serveAuthenticatedStatic = (req, res, next) => {
+  // Skip middleware for API routes and root route - they handle their own logic
+  if (req.path.startsWith('/api/') || req.path.startsWith('/socket.io/') || req.path === '/') {
+    return next();
+  }
+  
+  console.log(`🔍 Static middleware: ${req.path} - Session: ${!!req.session} - User: ${req.session?.user?.username || 'none'}`);
+  
+  // Allow public assets that don't need authentication
+  const publicPaths = [
+    '/css/auth.css',
+    '/css/style.css', // Needed for login page base styles
+    '/js/auth.js',
+    '/login.html',
+    '/favicon.ico'
+  ];
+  
+  // Allow all JS/CSS files for authenticated users, but check session first
+  const isStaticAsset = req.path.endsWith('.js') || req.path.endsWith('.css') || req.path.endsWith('.html');
+  
+  if (isStaticAsset && req.session && req.session.user) {
+    console.log(`✅ Serving authenticated asset: ${req.path}`);
+    return express.static('public')(req, res, next);
+  }
+  
+  const isPublicPath = publicPaths.some(path => req.path === path);
+  
+  if (isPublicPath) {
+    console.log(`🌐 Serving public asset: ${req.path}`);
+    return express.static('public')(req, res, next);
+  }
+  
+  // For all other static files, check authentication
+  if (!req.session || !req.session.user) {
+    console.log(`🔀 Redirecting unauthenticated request: ${req.path}`);
+    return res.redirect('/login.html');
+  }
+  
+  console.log(`📄 Serving other authenticated file: ${req.path}`);
+  return express.static('public')(req, res, next);
+};
+
+app.use(serveAuthenticatedStatic);
 
 // Authentication middleware
 function requireAuth(req, res, next) {
