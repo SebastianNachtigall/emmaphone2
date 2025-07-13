@@ -24,6 +24,7 @@ unset REDIS_HOST
 unset REDIS_PORT  
 unset REDIS_URL
 unset REDIS_URL_VAR
+unset REDIS_PASSWORD
 unset LIVEKIT_REDIS_HOST
 unset LIVEKIT_REDIS_PORT
 
@@ -67,9 +68,10 @@ if [ -n "$RAILWAY_REDIS_URL" ]; then
         export REDIS_PASS="$REDIS_PASS"
     fi
 else
-    echo "No Redis URL provided, using default redis:6379"
-    export REDIS_HOST=redis
-    export REDIS_PORT=6379
+    echo "No Redis URL provided, will run in standalone mode"
+    # Don't set these - they will be used by LiveKit automatically!
+    # export REDIS_HOST=redis
+    # export REDIS_PORT=6379
     export REDIS_USER=""
     export REDIS_PASS=""
 fi
@@ -121,9 +123,8 @@ grep -A 4 "redis:" /tmp/livekit-runtime.yaml
 
 # Try starting LiveKit with minimal command line only (no config file)
 echo "Starting LiveKit with minimal command line configuration..."
+echo "Keys being used: $LIVEKIT_API_KEY: [SECRET]"
 exec livekit-server \
     --keys "$LIVEKIT_API_KEY: $LIVEKIT_API_SECRET" \
-    --port $PORT \
     --bind 0.0.0.0 \
-    --log-level info \
-    --development
+    --dev
