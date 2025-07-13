@@ -1,0 +1,13 @@
+FROM livekit/livekit-server:latest
+
+# Set environment variables directly
+ENV LIVEKIT_KEYS="APIKeySecret_1234567890abcdef:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+ENV LIVEKIT_PORT=7880
+
+# Expose ports
+EXPOSE 7880
+EXPOSE 7881
+EXPOSE 50000-60000/udp
+
+# Simple start command - let Railway's PORT override if needed
+CMD ["sh", "-c", "echo 'Starting LiveKit...' && livekit-server --keys \"$LIVEKIT_KEYS\" --bind 0.0.0.0 --port ${PORT:-7880} --log-level debug"]

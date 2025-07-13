@@ -1,35 +1,34 @@
 #!/bin/bash
 
-echo "=== LiveKit Debug Start ==="
-echo "Date: $(date)"
-echo "PWD: $(pwd)"
-echo "User: $(whoami)"
+echo "DEBUG: Script starting..."
+echo "DEBUG: Date is $(date)"
 
-echo ""
-echo "=== Environment Variables ==="
-env | grep -E "(LIVEKIT|REDIS|PORT)" | sort
+# Force output to appear
+exec > >(tee -a /tmp/debug.log)
+exec 2>&1
 
-echo ""
-echo "=== File System Check ==="
-echo "Root directory contents:"
-ls -la /
+echo "DEBUG: Environment variables:"
+env
 
-echo ""
-echo "=== LiveKit Binary Check ==="
-which livekit-server
-livekit-server --version
+echo "DEBUG: Checking livekit-server binary:"
+which livekit-server || echo "livekit-server not found in PATH"
 
-echo ""
-echo "=== LiveKit Help ==="
-livekit-server --help | head -20
+if [ -f /usr/bin/livekit-server ]; then
+    echo "DEBUG: Found livekit-server at /usr/bin/livekit-server"
+    /usr/bin/livekit-server --version 2>&1 || echo "Version command failed"
+else
+    echo "DEBUG: livekit-server not found at /usr/bin/livekit-server"
+fi
 
-echo ""
-echo "=== Testing Simple Start ==="
-echo "Starting LiveKit with minimal config..."
+echo "DEBUG: Trying to start with debug logging..."
 
-# Try the simplest possible configuration first
-livekit-server \
+# Try absolute path and catch any errors
+/usr/bin/livekit-server \
+  --keys "APIKeySecret_1234567890abcdef:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890" \
   --bind 0.0.0.0 \
   --port 7880 \
-  --keys "APIKeySecret_1234567890abcdef:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890" \
-  --log-level debug
+  --log-level debug 2>&1 || {
+    echo "DEBUG: LiveKit startup failed with exit code $?"
+    echo "DEBUG: Checking what went wrong..."
+    ls -la /usr/bin/livekit* 2>&1 || echo "No livekit binaries found"
+}
