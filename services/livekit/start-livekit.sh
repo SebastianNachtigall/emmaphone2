@@ -119,10 +119,11 @@ echo "=== CONFIG FILE DEBUG ==="
 echo "Redis section of config:"
 grep -A 4 "redis:" /tmp/livekit-runtime.yaml
 
-# Start LiveKit server with explicit Redis disable using command line flags
-echo "Starting LiveKit with Redis disabled via command line..."
+# Try starting LiveKit with minimal command line only (no config file)
+echo "Starting LiveKit with minimal command line configuration..."
 exec livekit-server \
-    --config /tmp/livekit-runtime.yaml \
     --keys "$LIVEKIT_API_KEY: $LIVEKIT_API_SECRET" \
     --port $PORT \
-    --bind 0.0.0.0
+    --bind 0.0.0.0 \
+    --log-level info \
+    --development
