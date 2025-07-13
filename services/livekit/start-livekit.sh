@@ -15,6 +15,17 @@ fi
 echo "LiveKit binary found: $(which livekit-server)"
 echo "LiveKit version: $(livekit-server --version)"
 
+# Check for Redis-related environment variables that might be interfering
+echo "=== ENVIRONMENT CHECK ==="
+env | grep -i redis | head -10 || echo "No Redis environment variables found"
+
+# Clear any Redis environment variables that might override our config
+unset REDIS_HOST
+unset REDIS_PORT  
+unset REDIS_URL_VAR
+unset LIVEKIT_REDIS_HOST
+unset LIVEKIT_REDIS_PORT
+
 # Set up environment variables for Railway
 export LIVEKIT_CONFIG_FILE="/etc/livekit.yaml"
 
