@@ -24,6 +24,7 @@ const db = new DatabaseManager();
 
 // Initialize Redis client
 const redisClient = redis.createClient({
+  url: process.env.REDIS_URL,
   host: process.env.REDIS_HOST || 'redis',
   port: process.env.REDIS_PORT || 6379
 });
@@ -36,18 +37,27 @@ redisClient.on('connect', () => {
   console.log('Connected to Redis for session storage');
 });
 
-// Session configuration with Redis store
-app.use(session({
-  store: new RedisStore({ client: redisClient }),
+// Session configuration with optional Redis store
+const sessionConfig = {
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-this',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // Set to true in production with HTTPS
+    secure: process.env.NODE_ENV === 'production', // HTTPS in production
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
-}));
+};
+
+// Use Redis store if available, otherwise use memory store
+if (process.env.REDIS_URL || process.env.REDIS_HOST) {
+  sessionConfig.store = new RedisStore({ client: redisClient });
+  console.log('Using Redis session store');
+} else {
+  console.log('Using memory session store (not recommended for production)');
+}
+
+app.use(session(sessionConfig));
 
 // Authentication middleware
 function requireAuth(req, res, next) {
