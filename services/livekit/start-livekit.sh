@@ -85,8 +85,7 @@ fi
 echo "API Key: $LIVEKIT_API_KEY"
 echo "Redis: $REDIS_HOST:$REDIS_PORT"
 
-# Create a runtime config file with Railway-specific settings
-# Explicitly disable Redis by setting empty address
+# Create a minimal config file without Redis section
 cat > /tmp/livekit-runtime.yaml << EOF
 port: $PORT
 bind_addresses:
@@ -94,10 +93,6 @@ bind_addresses:
 
 keys:
   $LIVEKIT_API_KEY: $LIVEKIT_API_SECRET
-
-# Explicitly disable Redis
-redis:
-  address: ""
 
 rtc:
   tcp_port: 7881
@@ -124,5 +119,10 @@ echo "=== CONFIG FILE DEBUG ==="
 echo "Redis section of config:"
 grep -A 4 "redis:" /tmp/livekit-runtime.yaml
 
-# Start LiveKit server
-exec livekit-server --config /tmp/livekit-runtime.yaml
+# Start LiveKit server with explicit Redis disable using command line flags
+echo "Starting LiveKit with Redis disabled via command line..."
+exec livekit-server \
+    --config /tmp/livekit-runtime.yaml \
+    --keys "$LIVEKIT_API_KEY:$LIVEKIT_API_SECRET" \
+    --port $PORT \
+    --bind 0.0.0.0
