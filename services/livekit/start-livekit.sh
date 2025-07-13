@@ -76,12 +76,14 @@ else
     export REDIS_PASS=""
 fi
 
-# Generate secure API keys if not provided
+# Use environment variables for API keys (should be set in Railway)
 if [ -z "$LIVEKIT_API_KEY" ]; then
-    export LIVEKIT_API_KEY="APIKeySecret_$(openssl rand -hex 16)"
+    echo "WARNING: LIVEKIT_API_KEY not set, using default"
+    export LIVEKIT_API_KEY="APIKeySecret_emmaphone2_static"
 fi
 if [ -z "$LIVEKIT_API_SECRET" ]; then
-    export LIVEKIT_API_SECRET=$(openssl rand -hex 32)
+    echo "WARNING: LIVEKIT_API_SECRET not set, using default"
+    export LIVEKIT_API_SECRET="emmaphone2_static_secret_key_64chars_long_for_proper_security"
 fi
 
 echo "API Key: $LIVEKIT_API_KEY"
