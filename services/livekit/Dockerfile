@@ -1,14 +1,14 @@
-FROM alpine:latest
+FROM livekit/livekit-server:latest
 
-# Install basic tools and Python for a simple server
-RUN apk add --no-cache python3 curl bash
+# Install Python for our debug server
+RUN apt-get update && apt-get install -y python3 && rm -rf /var/lib/apt/lists/*
 
 # Expose the necessary ports
 EXPOSE 7880
 
-# Create a simple test server
-COPY test-server.py /test-server.py
+# Copy our debug server
+COPY test-server-with-livekit.py /test-server.py
 RUN chmod +x /test-server.py
 
-# Start test server
+# Start our debug server that will also test LiveKit
 CMD ["python3", "/test-server.py"]
