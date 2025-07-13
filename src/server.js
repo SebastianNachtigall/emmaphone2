@@ -23,11 +23,18 @@ app.use(express.static('public'));
 const db = new DatabaseManager();
 
 // Initialize Redis client
-const redisClient = redis.createClient({
-  url: process.env.REDIS_URL,
-  host: process.env.REDIS_HOST || 'redis',
-  port: process.env.REDIS_PORT || 6379
-});
+let redisClient;
+if (process.env.REDIS_URL) {
+  redisClient = redis.createClient({
+    url: process.env.REDIS_URL,
+    legacyMode: false
+  });
+} else {
+  redisClient = redis.createClient({
+    host: process.env.REDIS_HOST || 'redis',
+    port: process.env.REDIS_PORT || 6379
+  });
+}
 
 redisClient.on('error', (err) => {
   console.error('Redis client error:', err);
@@ -37,13 +44,20 @@ redisClient.on('connect', () => {
   console.log('Connected to Redis for session storage');
 });
 
+// Connect to Redis
+if (process.env.REDIS_URL || process.env.REDIS_HOST) {
+  redisClient.connect().catch(err => {
+    console.error('Failed to connect to Redis:', err);
+  });
+}
+
 // Session configuration with optional Redis store
 const sessionConfig = {
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-this',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // HTTPS in production
+    secure: false, // Keep false for Railway HTTP deployment
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
@@ -61,7 +75,8 @@ app.use(session(sessionConfig));
 
 // Authentication middleware
 function requireAuth(req, res, next) {
-  console.log('Auth check - Session:', !!req.session, 'User:', !!req.session?.user);
+  console.log('Auth check - Session:', !!req.session, 'User:', !!req.session?.user, 'SessionID:', req.sessionID);
+  console.log('Session contents:', req.session);
   if (req.session && req.session.user) {
     return next();
   } else {
