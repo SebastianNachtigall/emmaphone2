@@ -25,6 +25,8 @@ const serveAuthenticatedStatic = (req, res, next) => {
     return next();
   }
   
+  console.log(`🔍 Static middleware: ${req.path} - Session: ${!!req.session} - User: ${req.session?.user?.username || 'none'}`);
+  
   // Allow public assets that don't need authentication
   const publicPaths = [
     '/css/auth.css',
@@ -38,24 +40,24 @@ const serveAuthenticatedStatic = (req, res, next) => {
   const isStaticAsset = req.path.endsWith('.js') || req.path.endsWith('.css') || req.path.endsWith('.html');
   
   if (isStaticAsset && req.session && req.session.user) {
-    // User is authenticated, serve any static asset
+    console.log(`✅ Serving authenticated asset: ${req.path}`);
     return express.static('public')(req, res, next);
   }
   
   const isPublicPath = publicPaths.some(path => req.path === path);
   
   if (isPublicPath) {
-    // Serve public files without auth check
+    console.log(`🌐 Serving public asset: ${req.path}`);
     return express.static('public')(req, res, next);
   }
   
   // For all other static files, check authentication
   if (!req.session || !req.session.user) {
-    // Not authenticated, redirect to login for static files
+    console.log(`🔀 Redirecting unauthenticated request: ${req.path}`);
     return res.redirect('/login.html');
   }
   
-  // Authenticated, serve the file
+  console.log(`📄 Serving other authenticated file: ${req.path}`);
   return express.static('public')(req, res, next);
 };
 
