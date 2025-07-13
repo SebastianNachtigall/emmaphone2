@@ -478,7 +478,8 @@ app.post('/api/initiate-call', requireAuth, async (req, res) => {
     res.json({
       success: true,
       roomName: roomName,
-      callerToken: callerToken
+      callerToken: callerToken,
+      wsUrl: process.env.LIVEKIT_URL || 'ws://localhost:7880'
     });
 
   } catch (error) {
