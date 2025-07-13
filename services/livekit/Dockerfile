@@ -1,15 +1,12 @@
 FROM livekit/livekit-server:latest
 
-# Install basic tools including netcat for simple web server
-RUN apk add --no-cache bash netcat-openbsd python3
+# Install bash for debugging
+RUN apk add --no-cache bash
 
-# Expose the necessary ports
-EXPOSE 7880
+# Copy debug script
+COPY debug-with-override.sh /debug-with-override.sh
+RUN chmod +x /debug-with-override.sh
 
-# Copy our scripts
-COPY simple-debug.sh /simple-debug.sh
-COPY test-server-with-livekit.py /test-server.py
-RUN chmod +x /simple-debug.sh /test-server.py
-
-# Start with simple bash first, fallback to python if available
-CMD ["/simple-debug.sh"]
+# Override ENTRYPOINT completely and use our script
+ENTRYPOINT []
+CMD ["/debug-with-override.sh"]
