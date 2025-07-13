@@ -85,6 +85,7 @@ if [ -z "$LIVEKIT_API_SECRET" ]; then
 fi
 
 echo "API Key: $LIVEKIT_API_KEY"
+echo "API Secret: $LIVEKIT_API_SECRET"
 echo "Redis: $REDIS_HOST:$REDIS_PORT"
 
 # Create a minimal config file without Redis section
