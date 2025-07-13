@@ -28,8 +28,20 @@ if [ -n "$REDIS_URL" ]; then
     # Format: redis://default:password@host:port
     REDIS_HOST=$(echo $REDIS_URL | sed -n 's|redis://[^@]*@\([^:]*\):.*|\1|p')
     REDIS_PORT=$(echo $REDIS_URL | sed -n 's|redis://[^@]*@[^:]*:\([0-9]*\).*|\1|p')
-    export REDIS_HOST=${REDIS_HOST:-redis}
-    export REDIS_PORT=${REDIS_PORT:-6379}
+    
+    # Debug the parsing
+    echo "Parsed Redis Host: '$REDIS_HOST'"
+    echo "Parsed Redis Port: '$REDIS_PORT'"
+    
+    # Ensure we have valid values
+    if [ -z "$REDIS_HOST" ] || [ -z "$REDIS_PORT" ]; then
+        echo "Failed to parse Redis URL, falling back to defaults"
+        export REDIS_HOST=redis
+        export REDIS_PORT=6379
+    else
+        export REDIS_HOST="$REDIS_HOST"
+        export REDIS_PORT="$REDIS_PORT"
+    fi
 else
     echo "No Redis URL provided, using default redis:6379"
     export REDIS_HOST=redis
