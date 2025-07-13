@@ -22,6 +22,7 @@ env | grep -i redis | head -10 || echo "No Redis environment variables found"
 # Clear any Redis environment variables that might override our config
 unset REDIS_HOST
 unset REDIS_PORT  
+unset REDIS_URL
 unset REDIS_URL_VAR
 unset LIVEKIT_REDIS_HOST
 unset LIVEKIT_REDIS_PORT
@@ -32,16 +33,19 @@ export LIVEKIT_CONFIG_FILE="/etc/livekit.yaml"
 # Use Railway's PORT if provided, otherwise default to 7880
 export PORT=${PORT:-7880}
 
+# Store the Railway Redis URL before we unset it
+RAILWAY_REDIS_URL="$REDIS_URL"
+
 # Use Railway Redis URL if available
-if [ -n "$REDIS_URL" ]; then
-    echo "Using Railway Redis: $REDIS_URL"
+if [ -n "$RAILWAY_REDIS_URL" ]; then
+    echo "Using Railway Redis: $RAILWAY_REDIS_URL"
     
     # Extract components from Redis URL for LiveKit config
     # Format: redis://default:password@host:port
-    REDIS_USER=$(echo $REDIS_URL | sed -n 's|redis://\([^:]*\):.*|\1|p')
-    REDIS_PASS=$(echo $REDIS_URL | sed -n 's|redis://[^:]*:\([^@]*\)@.*|\1|p')
-    REDIS_HOST=$(echo $REDIS_URL | sed -n 's|redis://[^@]*@\([^:]*\):.*|\1|p')
-    REDIS_PORT=$(echo $REDIS_URL | sed -n 's|redis://[^@]*@[^:]*:\([0-9]*\).*|\1|p')
+    REDIS_USER=$(echo $RAILWAY_REDIS_URL | sed -n 's|redis://\([^:]*\):.*|\1|p')
+    REDIS_PASS=$(echo $RAILWAY_REDIS_URL | sed -n 's|redis://[^:]*:\([^@]*\)@.*|\1|p')
+    REDIS_HOST=$(echo $RAILWAY_REDIS_URL | sed -n 's|redis://[^@]*@\([^:]*\):.*|\1|p')
+    REDIS_PORT=$(echo $RAILWAY_REDIS_URL | sed -n 's|redis://[^@]*@[^:]*:\([0-9]*\).*|\1|p')
     
     # Debug the parsing
     echo "Parsed Redis User: '$REDIS_USER'"
