@@ -34,6 +34,14 @@ const serveAuthenticatedStatic = (req, res, next) => {
     '/favicon.ico'
   ];
   
+  // Allow all JS/CSS files for authenticated users, but check session first
+  const isStaticAsset = req.path.endsWith('.js') || req.path.endsWith('.css') || req.path.endsWith('.html');
+  
+  if (isStaticAsset && req.session && req.session.user) {
+    // User is authenticated, serve any static asset
+    return express.static('public')(req, res, next);
+  }
+  
   const isPublicPath = publicPaths.some(path => req.path === path);
   
   if (isPublicPath) {
