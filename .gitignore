@@ -1,16 +1,51 @@
+# Dependencies
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.DS_Store
+
+# Environment variables
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Logs
 logs/
 *.log
 server.log
 
-# SSL certificates (if generated locally)
-ssl/
+# Database files (keep structure, ignore data)
+data/db/*.db
+data/db/*.db-wal
+data/db/*.db-shm
+
+# SSL certificates (keep structure, ignore actual certificates)
+ssl/*.pem
+ssl/*.key
+ssl/*.crt
+
+# Docker volumes and data
+volumes/
+data/redis/
+data/livekit/
+
+# IDE and OS files
+.DS_Store
+.DS_Store?
+._*
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build outputs
+dist/
+build/
+.cache/
+
+# Temporary files
+tmp/
+temp/
