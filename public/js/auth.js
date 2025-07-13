@@ -233,13 +233,17 @@ class AuthManager {
             const response = await fetch('/api/auth/me');
             if (response.ok) {
                 const user = await response.json();
-                // User is already logged in, redirect to phone interface
-                sessionStorage.setItem('currentUser', JSON.stringify(user));
-                window.location.href = '/';
+                // User is already logged in, show message and let server handle redirect
+                console.log('Auth.js - User already logged in:', user.username);
+                this.showMessage('You are already logged in. Redirecting...', 'success');
+                // Let the server handle the redirect by navigating to root
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1000);
             }
         } catch (error) {
             // Not logged in, stay on auth page
-            console.log('No existing session');
+            console.log('No existing session - showing login form');
         }
     }
 }

@@ -135,7 +135,7 @@ class EmmaPhone2 {
         }
         
         this.authChecked = true;
-        console.log('🔍 Checking authentication (one time only)');
+        console.log('🔍 Checking authentication for UI updates');
         
         try {
             const response = await fetch('/api/auth/me');
@@ -149,12 +149,13 @@ class EmmaPhone2 {
                 this.loadContacts();
                 this.initializeSocket();
             } else {
-                console.log('❌ Not authenticated');
-                this.updateStatus('Not authenticated - would redirect to login');
+                // This should never happen since server protects this page
+                console.log('❌ Unexpected: Not authenticated but main app loaded');
+                this.updateStatus('Authentication error - please refresh');
             }
         } catch (error) {
             console.error('❌ Authentication check failed:', error);
-            this.updateStatus('Authentication error');
+            this.updateStatus('Authentication error - please refresh');
         }
     }
 

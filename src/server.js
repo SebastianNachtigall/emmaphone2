@@ -17,7 +17,39 @@ const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+
+// Create middleware for serving static files with auth protection
+const serveAuthenticatedStatic = (req, res, next) => {
+  // Allow public assets that don't need authentication
+  const publicPaths = [
+    '/css/auth.css',
+    '/css/style.css', // Needed for login page base styles
+    '/js/auth.js',
+    '/login.html',
+    '/favicon.ico'
+  ];
+  
+  const isPublicPath = publicPaths.some(path => req.path === path);
+  
+  if (isPublicPath) {
+    // Serve public files without auth check
+    return express.static('public')(req, res, next);
+  }
+  
+  // For all other files, check authentication
+  if (!req.session || !req.session.user) {
+    // Not authenticated, redirect to login
+    if (req.path.endsWith('.js') || req.path.endsWith('.css') || req.path.endsWith('.html')) {
+      return res.redirect('/login.html');
+    }
+    return res.redirect('/login.html');
+  }
+  
+  // Authenticated, serve the file
+  return express.static('public')(req, res, next);
+};
+
+app.use(serveAuthenticatedStatic);
 
 // Initialize database
 const db = new DatabaseManager();
