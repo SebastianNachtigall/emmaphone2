@@ -20,23 +20,29 @@
         </header>
 
         <main>
-            <div class="speed-dial-grid">
-                <button class="speed-dial-btn" id="dial-1" data-contact="1">
-                    <span class="contact-name">User 1001</span>
-                    <span class="contact-number">1001</span>
-                </button>
-                <button class="speed-dial-btn" id="dial-2" data-contact="2">
-                    <span class="contact-name">User 1002</span>
-                    <span class="contact-number">1002</span>
-                </button>
-                <button class="speed-dial-btn" id="dial-3" data-contact="3">
-                    <span class="contact-name">User 1003</span>
-                    <span class="contact-number">1003</span>
-                </button>
-                <button class="speed-dial-btn" id="dial-4" data-contact="4">
-                    <span class="contact-name">User 1004</span>
-                    <span class="contact-number">1004</span>
-                </button>
+            <div class="speed-dial-section">
+                <div class="speed-dial-header">
+                    <h3>Speed Dial</h3>
+                    <button id="manage-contacts-btn" class="action-btn secondary">Manage Contacts</button>
+                </div>
+                <div class="speed-dial-grid">
+                    <button class="speed-dial-btn" id="dial-1" data-contact="1">
+                        <span class="contact-name">User 1001</span>
+                        <span class="contact-number">1001</span>
+                    </button>
+                    <button class="speed-dial-btn" id="dial-2" data-contact="2">
+                        <span class="contact-name">User 1002</span>
+                        <span class="contact-number">1002</span>
+                    </button>
+                    <button class="speed-dial-btn" id="dial-3" data-contact="3">
+                        <span class="contact-name">User 1003</span>
+                        <span class="contact-number">1003</span>
+                    </button>
+                    <button class="speed-dial-btn" id="dial-4" data-contact="4">
+                        <span class="contact-name">User 1004</span>
+                        <span class="contact-number">1004</span>
+                    </button>
+                </div>
             </div>
 
             <div class="call-controls">
@@ -130,6 +136,79 @@
             <div class="modal-body">
                 <div id="group-details-content">
                     <!-- Dynamic content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Management Modal -->
+    <div class="modal-overlay" id="contact-management-modal" style="display: none;">
+        <div class="modal large">
+            <div class="modal-header">
+                <h3>Manage Contacts</h3>
+                <button class="modal-close" id="contact-management-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="contact-management-content">
+                    <div class="contact-management-grid">
+                        <!-- Left Side: Speed Dial Slots -->
+                        <div class="speed-dial-management">
+                            <h4>Speed Dial Slots</h4>
+                            <div class="speed-dial-slots">
+                                <div class="speed-dial-slot" data-position="1">
+                                    <div class="slot-header">
+                                        <span class="slot-number">1</span>
+                                        <span class="slot-label">Speed Dial 1</span>
+                                    </div>
+                                    <div class="slot-content" id="slot-1-content">
+                                        <button class="add-contact-btn" data-position="1">Add Contact</button>
+                                    </div>
+                                </div>
+                                <div class="speed-dial-slot" data-position="2">
+                                    <div class="slot-header">
+                                        <span class="slot-number">2</span>
+                                        <span class="slot-label">Speed Dial 2</span>
+                                    </div>
+                                    <div class="slot-content" id="slot-2-content">
+                                        <button class="add-contact-btn" data-position="2">Add Contact</button>
+                                    </div>
+                                </div>
+                                <div class="speed-dial-slot" data-position="3">
+                                    <div class="slot-header">
+                                        <span class="slot-number">3</span>
+                                        <span class="slot-label">Speed Dial 3</span>
+                                    </div>
+                                    <div class="slot-content" id="slot-3-content">
+                                        <button class="add-contact-btn" data-position="3">Add Contact</button>
+                                    </div>
+                                </div>
+                                <div class="speed-dial-slot" data-position="4">
+                                    <div class="slot-header">
+                                        <span class="slot-number">4</span>
+                                        <span class="slot-label">Speed Dial 4</span>
+                                    </div>
+                                    <div class="slot-content" id="slot-4-content">
+                                        <button class="add-contact-btn" data-position="4">Add Contact</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Side: User Search -->
+                        <div class="user-search-section">
+                            <h4>Add New Contact</h4>
+                            <div class="search-form">
+                                <div class="form-group">
+                                    <label for="user-search">Search Users</label>
+                                    <input type="text" id="user-search" placeholder="Enter username or name..." />
+                                    <small>Search for users to add to your speed dial</small>
+                                </div>
+                                <div class="search-results" id="search-results">
+                                    <div class="search-placeholder">Start typing to search for users...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

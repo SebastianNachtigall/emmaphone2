@@ -831,6 +831,314 @@ h1 {
     font-weight: 600;
 }
 
+/* Speed Dial Section */
+.speed-dial-section {
+    margin-bottom: 30px;
+}
+
+.speed-dial-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.speed-dial-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 1.3em;
+}
+
+/* Contact Management Modal */
+.contact-management-content {
+    padding: 0;
+}
+
+.contact-management-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    min-height: 400px;
+}
+
+.speed-dial-management h4,
+.user-search-section h4 {
+    margin: 0 0 20px 0;
+    color: #333;
+    font-size: 1.2em;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+/* Speed Dial Slots */
+.speed-dial-slots {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.speed-dial-slot {
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 15px;
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.speed-dial-slot:hover {
+    border-color: #667eea;
+    background: #f0f2ff;
+}
+
+.slot-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.slot-number {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #667eea;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.slot-label {
+    font-weight: 600;
+    color: #333;
+}
+
+.slot-content {
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+}
+
+.add-contact-btn {
+    padding: 8px 16px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.add-contact-btn:hover {
+    background: #5a6fd8;
+    transform: translateY(-1px);
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.contact-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.contact-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #667eea;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.9em;
+}
+
+.contact-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.contact-name {
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+    font-size: 0.9em;
+}
+
+.contact-username {
+    color: #666;
+    font-size: 0.8em;
+    margin: 0;
+}
+
+.contact-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.contact-action-btn {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.8em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.edit-contact-btn {
+    background: #ffc107;
+    color: #333;
+}
+
+.edit-contact-btn:hover {
+    background: #e0a800;
+}
+
+.remove-contact-btn {
+    background: #dc3545;
+    color: white;
+}
+
+.remove-contact-btn:hover {
+    background: #c82333;
+}
+
+/* User Search Section */
+.search-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.search-results {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    background: white;
+}
+
+.search-placeholder {
+    padding: 20px;
+    text-align: center;
+    color: #666;
+    font-style: italic;
+}
+
+.search-result-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.3s ease;
+}
+
+.search-result-item:hover {
+    background: #f8f9fa;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.search-result-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #667eea;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 1.1em;
+}
+
+.search-result-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.search-result-name {
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 2px 0;
+}
+
+.search-result-username {
+    color: #666;
+    font-size: 0.9em;
+    margin: 0;
+}
+
+.search-result-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.position-select {
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.add-to-speed-dial-btn {
+    padding: 6px 12px;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.add-to-speed-dial-btn:hover {
+    background: #218838;
+}
+
+.add-to-speed-dial-btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+.search-no-results {
+    padding: 20px;
+    text-align: center;
+    color: #666;
+    font-style: italic;
+}
+
+.search-loading {
+    padding: 20px;
+    text-align: center;
+    color: #667eea;
+}
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
     .groups-header {
@@ -858,5 +1166,16 @@ h1 {
     
     .members-list {
         grid-template-columns: 1fr;
+    }
+
+    .contact-management-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .speed-dial-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
     }
 }

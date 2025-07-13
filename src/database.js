@@ -181,6 +181,50 @@ class DatabaseManager {
         }
     }
 
+    updateContact(contactId, userId, displayName, speedDialPosition) {
+        const stmt = this.db.prepare(`
+            UPDATE contacts 
+            SET display_name = COALESCE(?, display_name),
+                speed_dial_position = COALESCE(?, speed_dial_position)
+            WHERE id = ? AND user_id = ?
+        `);
+        
+        try {
+            const result = stmt.run(displayName, speedDialPosition, contactId, userId);
+            return result.changes > 0;
+        } catch (error) {
+            if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+                throw new Error('Speed dial position already taken');
+            }
+            throw error;
+        }
+    }
+
+    removeContact(contactId, userId) {
+        const stmt = this.db.prepare(`
+            DELETE FROM contacts 
+            WHERE id = ? AND user_id = ?
+        `);
+        
+        const result = stmt.run(contactId, userId);
+        return result.changes > 0;
+    }
+
+    searchUsers(query, excludeUserId) {
+        const stmt = this.db.prepare(`
+            SELECT id, username, display_name, avatar_color
+            FROM users 
+            WHERE (username LIKE ? OR display_name LIKE ?) 
+            AND is_active = 1 
+            AND id != ?
+            ORDER BY display_name ASC
+            LIMIT 20
+        `);
+        
+        const searchTerm = `%${query}%`;
+        return stmt.all(searchTerm, searchTerm, excludeUserId);
+    }
+
     // Friend group management
     createFriendGroup(name, description, adminUserId) {
         const inviteCode = Math.random().toString(36).substr(2, 8).toUpperCase();

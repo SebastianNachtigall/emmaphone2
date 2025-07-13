@@ -50,6 +50,12 @@ class EmmaPhone2 {
             joinGroupBtn.addEventListener('click', () => this.showJoinGroupModal());
         }
 
+        // Contact management button
+        const manageContactsBtn = document.getElementById('manage-contacts-btn');
+        if (manageContactsBtn) {
+            manageContactsBtn.addEventListener('click', () => this.showContactManagementModal());
+        }
+
         // Modal close buttons and overlays
         this.setupModalListeners();
     }
@@ -97,6 +103,27 @@ class EmmaPhone2 {
         if (detailsModal) {
             detailsModal.addEventListener('click', (e) => {
                 if (e.target === detailsModal) this.hideGroupDetailsModal();
+            });
+        }
+
+        // Contact Management Modal
+        const contactModal = document.getElementById('contact-management-modal');
+        const contactClose = document.getElementById('contact-management-close');
+
+        if (contactClose) contactClose.addEventListener('click', () => this.hideContactManagementModal());
+        if (contactModal) {
+            contactModal.addEventListener('click', (e) => {
+                if (e.target === contactModal) this.hideContactManagementModal();
+            });
+        }
+
+        // User search input
+        const userSearchInput = document.getElementById('user-search');
+        if (userSearchInput) {
+            let searchTimeout;
+            userSearchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => this.handleUserSearch(e.target.value), 300);
             });
         }
     }
@@ -209,30 +236,38 @@ class EmmaPhone2 {
             // Find contact with this speed dial position
             const contact = this.contacts.find(c => c.speed_dial_position === i);
             
+            // Clone the button to remove all event listeners
+            const newDialBtn = dialBtn.cloneNode(true);
+            dialBtn.parentNode.replaceChild(newDialBtn, dialBtn);
+            
             if (contact) {
-                const nameEl = dialBtn.querySelector('.contact-name');
-                const numberEl = dialBtn.querySelector('.contact-number');
+                const nameEl = newDialBtn.querySelector('.contact-name');
+                const numberEl = newDialBtn.querySelector('.contact-number');
                 
                 if (nameEl) nameEl.textContent = contact.display_name;
                 if (numberEl) numberEl.textContent = contact.username;
                 
                 // Store contact data for calling
-                dialBtn.dataset.contactUserId = contact.contact_user_id;
-                dialBtn.dataset.contactName = contact.display_name;
-                dialBtn.dataset.contactUsername = contact.username;
+                newDialBtn.dataset.contactUserId = contact.contact_user_id;
+                newDialBtn.dataset.contactName = contact.display_name;
+                newDialBtn.dataset.contactUsername = contact.username;
                 
                 // Enable button and add click handler
-                dialBtn.disabled = false;
-                dialBtn.addEventListener('click', () => this.initiateCall(contact));
+                newDialBtn.disabled = false;
+                newDialBtn.addEventListener('click', () => this.initiateCall(contact));
             } else {
                 // No contact for this position
-                const nameEl = dialBtn.querySelector('.contact-name');
-                const numberEl = dialBtn.querySelector('.contact-number');
+                const nameEl = newDialBtn.querySelector('.contact-name');
+                const numberEl = newDialBtn.querySelector('.contact-number');
                 
                 if (nameEl) nameEl.textContent = `Empty Slot ${i}`;
                 if (numberEl) numberEl.textContent = 'No Contact';
                 
-                dialBtn.disabled = true;
+                // Clear stored data and disable button
+                delete newDialBtn.dataset.contactUserId;
+                delete newDialBtn.dataset.contactName;
+                delete newDialBtn.dataset.contactUsername;
+                newDialBtn.disabled = true;
             }
         }
     }
@@ -390,6 +425,264 @@ class EmmaPhone2 {
         }
         
         this.updateStatus('Call ended');
+    }
+
+    // Contact Management Methods
+    showContactManagementModal() {
+        const modal = document.getElementById('contact-management-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+            this.renderContactManagementSlots();
+        }
+    }
+
+    hideContactManagementModal() {
+        const modal = document.getElementById('contact-management-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    renderContactManagementSlots() {
+        // Render current contacts in speed dial slots
+        for (let position = 1; position <= 4; position++) {
+            const slotContent = document.getElementById(`slot-${position}-content`);
+            if (!slotContent) continue;
+
+            const contact = this.contacts.find(c => c.speed_dial_position === position);
+            
+            if (contact) {
+                slotContent.innerHTML = `
+                    <div class="contact-item">
+                        <div class="contact-info">
+                            <div class="contact-avatar" style="background-color: ${contact.avatar_color}">
+                                ${contact.display_name.charAt(0).toUpperCase()}
+                            </div>
+                            <div class="contact-details">
+                                <div class="contact-name">${contact.display_name}</div>
+                                <div class="contact-username">@${contact.username}</div>
+                            </div>
+                        </div>
+                        <div class="contact-actions">
+                            <button class="contact-action-btn edit-contact-btn" onclick="emmaPhone.editContact(${contact.id})">✏️</button>
+                            <button class="contact-action-btn remove-contact-btn" onclick="emmaPhone.removeContact(${contact.id})">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                slotContent.innerHTML = `
+                    <button class="add-contact-btn" data-position="${position}">Add Contact</button>
+                `;
+            }
+        }
+
+        // Add event listeners for add contact buttons
+        document.querySelectorAll('.add-contact-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const position = parseInt(e.target.dataset.position);
+                this.focusSearchForPosition(position);
+            });
+        });
+    }
+
+    focusSearchForPosition(position) {
+        this.selectedPosition = position;
+        const searchInput = document.getElementById('user-search');
+        if (searchInput) {
+            searchInput.focus();
+            searchInput.placeholder = `Search users for Speed Dial ${position}...`;
+        }
+        
+        // Update all position selects in search results
+        document.querySelectorAll('.position-select').forEach(select => {
+            select.value = position;
+        });
+    }
+
+    async handleUserSearch(query) {
+        const resultsContainer = document.getElementById('search-results');
+        
+        if (!query || query.length < 2) {
+            resultsContainer.innerHTML = '<div class="search-placeholder">Start typing to search for users...</div>';
+            return;
+        }
+
+        resultsContainer.innerHTML = '<div class="search-loading">Searching...</div>';
+
+        try {
+            const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
+            if (response.ok) {
+                const users = await response.json();
+                this.renderSearchResults(users);
+            } else {
+                resultsContainer.innerHTML = '<div class="search-no-results">Search failed. Please try again.</div>';
+            }
+        } catch (error) {
+            console.error('Error searching users:', error);
+            resultsContainer.innerHTML = '<div class="search-no-results">Search error. Please try again.</div>';
+        }
+    }
+
+    renderSearchResults(users) {
+        const resultsContainer = document.getElementById('search-results');
+        
+        if (users.length === 0) {
+            resultsContainer.innerHTML = '<div class="search-no-results">No users found.</div>';
+            return;
+        }
+
+        // Get available positions
+        const occupiedPositions = this.contacts.map(c => c.speed_dial_position).filter(p => p);
+        const availablePositions = [1, 2, 3, 4].filter(p => !occupiedPositions.includes(p));
+
+        resultsContainer.innerHTML = users.map(user => {
+            // Check if user is already a contact
+            const isAlreadyContact = this.contacts.some(c => c.contact_user_id === user.id);
+            
+            return `
+                <div class="search-result-item">
+                    <div class="search-result-info">
+                        <div class="search-result-avatar" style="background-color: ${user.avatar_color}">
+                            ${user.display_name.charAt(0).toUpperCase()}
+                        </div>
+                        <div class="search-result-details">
+                            <div class="search-result-name">${user.display_name}</div>
+                            <div class="search-result-username">@${user.username}</div>
+                        </div>
+                    </div>
+                    <div class="search-result-actions">
+                        <select class="position-select" ${isAlreadyContact ? 'disabled' : ''}>
+                            ${availablePositions.map(pos => 
+                                `<option value="${pos}" ${pos === this.selectedPosition ? 'selected' : ''}>Slot ${pos}</option>`
+                            ).join('')}
+                        </select>
+                        <button class="add-to-speed-dial-btn" 
+                                onclick="emmaPhone.addContactToSpeedDial(${user.id}, '${user.display_name}', this)"
+                                ${isAlreadyContact || availablePositions.length === 0 ? 'disabled' : ''}>
+                            ${isAlreadyContact ? 'Already Added' : 'Add'}
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async addContactToSpeedDial(userId, displayName, buttonElement) {
+        const positionSelect = buttonElement.parentElement.querySelector('.position-select');
+        const position = parseInt(positionSelect.value);
+
+        if (!position) {
+            alert('Please select a speed dial position');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/contacts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    contactUserId: userId,
+                    displayName: displayName,
+                    speedDialPosition: position
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Contact added:', result);
+                
+                // Refresh contacts and update UI
+                await this.loadContacts();
+                this.renderContactManagementSlots();
+                
+                // Clear search
+                const searchInput = document.getElementById('user-search');
+                if (searchInput) {
+                    searchInput.value = '';
+                }
+                document.getElementById('search-results').innerHTML = 
+                    '<div class="search-placeholder">Start typing to search for users...</div>';
+                
+                this.updateStatus(`${displayName} added to speed dial ${position}`);
+            } else {
+                const error = await response.json();
+                alert('Failed to add contact: ' + (error.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error adding contact:', error);
+            alert('Failed to add contact. Please try again.');
+        }
+    }
+
+    async removeContact(contactId) {
+        const contact = this.contacts.find(c => c.id === contactId);
+        if (!contact) return;
+
+        if (!confirm(`Remove ${contact.display_name} from speed dial?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/contacts/${contactId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                console.log('Contact removed');
+                
+                // Refresh contacts and update UI
+                await this.loadContacts();
+                this.renderContactManagementSlots();
+                
+                this.updateStatus(`${contact.display_name} removed from speed dial`);
+            } else {
+                const error = await response.json();
+                alert('Failed to remove contact: ' + (error.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error removing contact:', error);
+            alert('Failed to remove contact. Please try again.');
+        }
+    }
+
+    async editContact(contactId) {
+        const contact = this.contacts.find(c => c.id === contactId);
+        if (!contact) return;
+
+        const newDisplayName = prompt('Enter new display name:', contact.display_name);
+        if (!newDisplayName || newDisplayName === contact.display_name) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/contacts/${contactId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    displayName: newDisplayName.trim()
+                })
+            });
+
+            if (response.ok) {
+                console.log('Contact updated');
+                
+                // Refresh contacts and update UI
+                await this.loadContacts();
+                this.renderContactManagementSlots();
+                
+                this.updateStatus(`Contact updated to ${newDisplayName}`);
+            } else {
+                const error = await response.json();
+                alert('Failed to update contact: ' + (error.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error updating contact:', error);
+            alert('Failed to update contact. Please try again.');
+        }
     }
 
     // Friend Group Management Methods

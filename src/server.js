@@ -212,6 +212,133 @@ app.get('/api/contacts', requireAuth, (req, res) => {
   }
 });
 
+// Add new contact
+app.post('/api/contacts', requireAuth, (req, res) => {
+  try {
+    const { contactUserId, displayName, speedDialPosition } = req.body;
+    
+    if (!contactUserId) {
+      return res.status(400).json({ error: 'Contact user ID is required' });
+    }
+    
+    // Prevent adding yourself
+    if (contactUserId === req.session.user.id) {
+      return res.status(400).json({ error: 'Cannot add yourself as a contact' });
+    }
+    
+    // Check if contact already exists
+    const existingContacts = db.getUserContacts(req.session.user.id);
+    if (existingContacts.some(c => c.contact_user_id === contactUserId)) {
+      return res.status(409).json({ error: 'Contact already exists' });
+    }
+    
+    // Validate speed dial position
+    if (speedDialPosition && (speedDialPosition < 1 || speedDialPosition > 4)) {
+      return res.status(400).json({ error: 'Speed dial position must be between 1 and 4' });
+    }
+    
+    // Check if speed dial position is already taken
+    if (speedDialPosition && existingContacts.some(c => c.speed_dial_position === speedDialPosition)) {
+      return res.status(409).json({ error: 'Speed dial position already taken' });
+    }
+    
+    const contactId = db.addContact(req.session.user.id, contactUserId, displayName, speedDialPosition);
+    const newContact = db.getUserContacts(req.session.user.id).find(c => c.id === contactId);
+    
+    res.json({ success: true, contact: newContact });
+  } catch (error) {
+    console.error('Error adding contact:', error);
+    res.status(500).json({ error: 'Failed to add contact' });
+  }
+});
+
+// Update contact
+app.put('/api/contacts/:id', requireAuth, (req, res) => {
+  try {
+    const contactId = parseInt(req.params.id);
+    const { displayName, speedDialPosition } = req.body;
+    
+    if (isNaN(contactId)) {
+      return res.status(400).json({ error: 'Invalid contact ID' });
+    }
+    
+    // Check if contact belongs to user
+    const existingContacts = db.getUserContacts(req.session.user.id);
+    const contact = existingContacts.find(c => c.id === contactId);
+    if (!contact) {
+      return res.status(404).json({ error: 'Contact not found' });
+    }
+    
+    // Validate speed dial position if provided
+    if (speedDialPosition !== undefined) {
+      if (speedDialPosition !== null && (speedDialPosition < 1 || speedDialPosition > 4)) {
+        return res.status(400).json({ error: 'Speed dial position must be between 1 and 4' });
+      }
+      
+      // Check if new position is already taken by another contact
+      if (speedDialPosition && existingContacts.some(c => c.id !== contactId && c.speed_dial_position === speedDialPosition)) {
+        return res.status(409).json({ error: 'Speed dial position already taken' });
+      }
+    }
+    
+    const success = db.updateContact(contactId, req.session.user.id, displayName, speedDialPosition);
+    if (success) {
+      const updatedContact = db.getUserContacts(req.session.user.id).find(c => c.id === contactId);
+      res.json({ success: true, contact: updatedContact });
+    } else {
+      res.status(500).json({ error: 'Failed to update contact' });
+    }
+  } catch (error) {
+    console.error('Error updating contact:', error);
+    res.status(500).json({ error: 'Failed to update contact' });
+  }
+});
+
+// Delete contact
+app.delete('/api/contacts/:id', requireAuth, (req, res) => {
+  try {
+    const contactId = parseInt(req.params.id);
+    
+    if (isNaN(contactId)) {
+      return res.status(400).json({ error: 'Invalid contact ID' });
+    }
+    
+    // Check if contact belongs to user
+    const existingContacts = db.getUserContacts(req.session.user.id);
+    const contact = existingContacts.find(c => c.id === contactId);
+    if (!contact) {
+      return res.status(404).json({ error: 'Contact not found' });
+    }
+    
+    const success = db.removeContact(contactId, req.session.user.id);
+    if (success) {
+      res.json({ success: true });
+    } else {
+      res.status(500).json({ error: 'Failed to remove contact' });
+    }
+  } catch (error) {
+    console.error('Error removing contact:', error);
+    res.status(500).json({ error: 'Failed to remove contact' });
+  }
+});
+
+// Search users for adding as contacts
+app.get('/api/users/search', requireAuth, (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q || q.trim().length < 2) {
+      return res.status(400).json({ error: 'Search query must be at least 2 characters' });
+    }
+    
+    const users = db.searchUsers(q.trim(), req.session.user.id);
+    res.json(users);
+  } catch (error) {
+    console.error('Error searching users:', error);
+    res.status(500).json({ error: 'Failed to search users' });
+  }
+});
+
 // Friend group endpoints
 app.get('/api/groups', requireAuth, (req, res) => {
   try {
