@@ -76,20 +76,5 @@ CREATE INDEX idx_contacts_speed_dial ON contacts(user_id, speed_dial_position);
 CREATE INDEX idx_call_logs_participants ON call_logs(caller_id, callee_id);
 CREATE INDEX idx_call_logs_started ON call_logs(started_at);
 
--- Insert demo data for testing
--- Demo users will be created with proper password hashing when database is initialized
--- Passwords: demo123 for all users
-
-INSERT INTO friend_groups (name, description, invite_code, admin_user_id) VALUES
-('Test Family', 'Demo family group for testing', 'FAMILY123', 1);
-
-INSERT INTO user_groups (user_id, group_id) VALUES
-(1, 1), (2, 1), (3, 1), (4, 1);
-
-INSERT INTO contacts (user_id, contact_user_id, display_name, speed_dial_position) VALUES
-(1, 2, 'Noah', 1),
-(1, 3, 'Olivia', 2),
-(1, 4, 'Liam', 3),
-(2, 1, 'Emma', 1),
-(2, 3, 'Olivia', 2),
-(2, 4, 'Liam', 3);
+-- Demo data will be created by the application code after users are properly initialized
+-- This ensures proper password hashing and avoids foreign key constraint issues
