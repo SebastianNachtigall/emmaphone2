@@ -4,12 +4,11 @@ bind_addresses:
 rtc:
   tcp_port: 7881
   port_range_start: 50000
-  port_range_end: 50100  # Smaller range for Railway
+  port_range_end: 50100
   use_external_ip: true
 turn:
   enabled: false
-redis:
-  address: ${REDIS_URL}  # Railway will provide this
+# Redis will be configured via environment variables
 keys:
   APIKeySecret_1234567890abcdef: abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
 webhook:
