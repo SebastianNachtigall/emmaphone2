@@ -5,12 +5,12 @@ FROM node:18-alpine AS base
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY web/package*.json ./
 
 # Development stage
 FROM base AS development
 RUN npm install
-COPY . .
+COPY web/ .
 EXPOSE 3001 3443
 CMD ["npm", "run", "dev"]
 
@@ -19,9 +19,9 @@ FROM base AS production
 RUN npm install --only=production
 
 # Copy application code
-COPY src/ ./src/
-COPY public/ ./public/
-COPY database/ ./database/
+COPY web/src/ ./src/
+COPY web/public/ ./public/
+COPY web/database/ ./database/
 
 # Create directories for data persistence
 RUN mkdir -p /app/data /app/certs
