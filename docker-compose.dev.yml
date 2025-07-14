@@ -6,7 +6,8 @@ version: '3.8'
 services:
   emmaphone:
     build:
-      context: ./docker/web
+      context: .
+      dockerfile: ./docker/web/Dockerfile
       target: development
     volumes:
       # Mount source code for hot reload during development
