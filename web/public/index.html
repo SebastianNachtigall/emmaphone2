@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmmaPhone2 - Kid-Friendly WebRTC Client</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar">U</div>
+                <div class="user-details">
+                    <h2 id="user-name">Loading...</h2>
+                    <div class="status" id="status">Ready</div>
+                </div>
+                <button class="logout-btn" id="logout-btn" title="Logout">⏻</button>
+            </div>
+        </header>
+
+        <main>
+            <div class="speed-dial-section">
+                <div class="speed-dial-header">
+                    <h3>Speed Dial</h3>
+                    <button id="manage-contacts-btn" class="action-btn secondary">Manage Contacts</button>
+                </div>
+                <div class="speed-dial-grid">
+                    <button class="speed-dial-btn" id="dial-1" data-contact="1">
+                        <span class="contact-name">User 1001</span>
+                        <span class="contact-number">1001</span>
+                    </button>
+                    <button class="speed-dial-btn" id="dial-2" data-contact="2">
+                        <span class="contact-name">User 1002</span>
+                        <span class="contact-number">1002</span>
+                    </button>
+                    <button class="speed-dial-btn" id="dial-3" data-contact="3">
+                        <span class="contact-name">User 1003</span>
+                        <span class="contact-number">1003</span>
+                    </button>
+                    <button class="speed-dial-btn" id="dial-4" data-contact="4">
+                        <span class="contact-name">User 1004</span>
+                        <span class="contact-number">1004</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="call-controls">
+                <button class="control-btn hangup-btn" id="hangup-btn" disabled>
+                    <span>Hang Up</span>
+                </button>
+            </div>
+
+            <div class="volume-controls">
+                <label for="volume-slider">Volume:</label>
+                <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="0.8">
+            </div>
+        </main>
+
+        <div class="connection-section">
+            <button id="connect-btn" class="connect-btn">Connect to LiveKit</button>
+            <p class="connection-info">Connect to start making calls</p>
+        </div>
+
+        <!-- Friend Groups Section -->
+        <div class="groups-section">
+            <div class="groups-header">
+                <h3>Friend Groups</h3>
+                <div class="groups-actions">
+                    <button id="create-group-btn" class="action-btn primary">Create Group</button>
+                    <button id="join-group-btn" class="action-btn secondary">Join Group</button>
+                </div>
+            </div>
+            <div id="groups-list" class="groups-list">
+                <div class="loading">Loading groups...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Group Modal -->
+    <div class="modal-overlay" id="create-group-modal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Create New Group</h3>
+                <button class="modal-close" id="create-group-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="create-group-form">
+                    <div class="form-group">
+                        <label for="group-name">Group Name</label>
+                        <input type="text" id="group-name" name="name" placeholder="e.g., Smith Family" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="group-description">Description (optional)</label>
+                        <textarea id="group-description" name="description" placeholder="Describe your group..." rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn secondary" id="create-group-cancel">Cancel</button>
+                        <button type="submit" class="btn primary">Create Group</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Join Group Modal -->
+    <div class="modal-overlay" id="join-group-modal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Join Group</h3>
+                <button class="modal-close" id="join-group-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="join-group-form">
+                    <div class="form-group">
+                        <label for="invite-code">Invite Code</label>
+                        <input type="text" id="invite-code" name="inviteCode" placeholder="e.g., FAMILY123" required>
+                        <small>Enter the invite code shared by the group admin</small>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn secondary" id="join-group-cancel">Cancel</button>
+                        <button type="submit" class="btn primary">Join Group</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Group Details Modal -->
+    <div class="modal-overlay" id="group-details-modal" style="display: none;">
+        <div class="modal large">
+            <div class="modal-header">
+                <h3 id="group-details-title">Group Details</h3>
+                <button class="modal-close" id="group-details-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="group-details-content">
+                    <!-- Dynamic content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Management Modal -->
+    <div class="modal-overlay" id="contact-management-modal" style="display: none;">
+        <div class="modal large">
+            <div class="modal-header">
+                <h3>Manage Contacts</h3>
+                <button class="modal-close" id="contact-management-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="contact-management-content">
+                    <div class="contact-management-grid">
+                        <!-- Left Side: Speed Dial Slots -->
+                        <div class="speed-dial-management">
+                            <h4>Speed Dial Slots</h4>
+                            <div class="speed-dial-slots">
+                                <div class="speed-dial-slot" data-position="1">
+                                    <div class="slot-header">
+                                        <span class="slot-number">1</span>
+                                        <span class="slot-label">Speed Dial 1</span>
+                                    </div>
+                                    <div class="slot-content" id="slot-1-content">
+                                        <button class="add-contact-btn" data-position="1">Add Contact</button>
+                                    </div>
+                                </div>
+                                <div class="speed-dial-slot" data-position="2">
+                                    <div class="slot-header">
+                                        <span class="slot-number">2</span>
+                                        <span class="slot-label">Speed Dial 2</span>
+                                    </div>
+                                    <div class="slot-content" id="slot-2-content">
+                                        <button class="add-contact-btn" data-position="2">Add Contact</button>
+                                    </div>
+                                </div>
+                                <div class="speed-dial-slot" data-position="3">
+                                    <div class="slot-header">
+                                        <span class="slot-number">3</span>
+                                        <span class="slot-label">Speed Dial 3</span>
+                                    </div>
+                                    <div class="slot-content" id="slot-3-content">
+                                        <button class="add-contact-btn" data-position="3">Add Contact</button>
+                                    </div>
+                                </div>
+                                <div class="speed-dial-slot" data-position="4">
+                                    <div class="slot-header">
+                                        <span class="slot-number">4</span>
+                                        <span class="slot-label">Speed Dial 4</span>
+                                    </div>
+                                    <div class="slot-content" id="slot-4-content">
+                                        <button class="add-contact-btn" data-position="4">Add Contact</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Side: User Search -->
+                        <div class="user-search-section">
+                            <h4>Add New Contact</h4>
+                            <div class="search-form">
+                                <div class="form-group">
+                                    <label for="user-search">Search Users</label>
+                                    <input type="text" id="user-search" placeholder="Enter username or name..." />
+                                    <small>Search for users to add to your speed dial</small>
+                                </div>
+                                <div class="search-results" id="search-results">
+                                    <div class="search-placeholder">Start typing to search for users...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Incoming Call Modal -->
+    <div class="incoming-call-modal" id="incoming-call-modal" style="display: none;">
+        <div class="call-modal-content">
+            <div class="caller-info">
+                <h2>Incoming Call</h2>
+                <p class="caller-name" id="caller-name">Unknown Caller</p>
+                <p class="call-subtitle">wants to talk with you</p>
+            </div>
+            <div class="call-actions">
+                <button class="call-btn accept-btn" id="accept-call-btn">
+                    📞 Accept
+                </button>
+                <button class="call-btn reject-btn" id="reject-call-btn">
+                    ❌ Reject
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="lib/livekit-client.umd.min.js"></script>
+    <script src="js/liveKitClient.js"></script>
+    <script src="js/main-simple.js?v=2"></script>
+</body>
+</html>

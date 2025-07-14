@@ -1,0 +1,34 @@
+{
+  "name": "emmaphone2",
+  "version": "1.1.0",
+  "description": "Kid-friendly WebRTC client using LiveKit for Raspberry Pi",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "better-sqlite3": "^9.2.2",
+    "connect-redis": "^5.2.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "livekit-client": "^2.15.2",
+    "livekit-server-sdk": "^2.13.1",
+    "redis": "^3.1.2",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "webrtc",
+    "livekit",
+    "raspberry-pi",
+    "kids",
+    "voip"
+  ],
+  "author": "",
+  "license": "MIT"
+}

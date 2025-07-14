@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmmaPhone2 - Login</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+</head>
+<body class="auth-body">
+    <div class="auth-container">
+        <header class="auth-header">
+            <h1>EmmaPhone2</h1>
+            <p class="subtitle">Welcome back!</p>
+        </header>
+
+        <div class="auth-tabs">
+            <button class="tab-btn active" data-tab="login">Login</button>
+            <button class="tab-btn" data-tab="register">Sign Up</button>
+        </div>
+
+        <!-- Login Form -->
+        <div class="auth-form active" id="login-form">
+            <form id="login-form-element">
+                <div class="form-group">
+                    <label for="login-username">Username</label>
+                    <input type="text" id="login-username" name="username" required autocomplete="username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" name="password" required autocomplete="current-password">
+                </div>
+                
+                <button type="submit" class="auth-btn primary">
+                    <span class="btn-text">Login</span>
+                    <span class="btn-spinner" style="display: none;">🔄</span>
+                </button>
+            </form>
+            
+            <div class="demo-accounts">
+                <p class="demo-title">Demo Accounts:</p>
+                <div class="demo-grid">
+                    <button class="demo-btn" data-username="emma" data-password="demo123">
+                        <span class="demo-avatar" style="background: #ff6b6b;">E</span>
+                        Emma
+                    </button>
+                    <button class="demo-btn" data-username="noah" data-password="demo123">
+                        <span class="demo-avatar" style="background: #4ecdc4;">N</span>
+                        Noah
+                    </button>
+                    <button class="demo-btn" data-username="olivia" data-password="demo123">
+                        <span class="demo-avatar" style="background: #45b7d1;">O</span>
+                        Olivia
+                    </button>
+                    <button class="demo-btn" data-username="liam" data-password="demo123">
+                        <span class="demo-avatar" style="background: #96ceb4;">L</span>
+                        Liam
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Registration Form -->
+        <div class="auth-form" id="register-form">
+            <form id="register-form-element">
+                <div class="form-group">
+                    <label for="register-username">Username</label>
+                    <input type="text" id="register-username" name="username" required 
+                           pattern="[a-zA-Z0-9_]{3,20}" title="3-20 characters, letters, numbers, underscore only">
+                    <small>3-20 characters, letters and numbers only</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-display-name">Display Name</label>
+                    <input type="text" id="register-display-name" name="displayName" required maxlength="50">
+                    <small>Your name as others will see it</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-password">Password</label>
+                    <input type="password" id="register-password" name="password" required minlength="6">
+                    <small>At least 6 characters</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="register-pin">PIN (for quick access)</label>
+                    <input type="text" id="register-pin" name="pin" pattern="[0-9]{4}" maxlength="4" placeholder="1234">
+                    <small>4-digit PIN for easy login (optional)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="avatar-color">Avatar Color</label>
+                    <div class="color-picker">
+                        <input type="color" id="avatar-color" name="avatarColor" value="#667eea">
+                        <div class="color-preview">
+                            <span class="avatar-preview" id="avatar-preview">A</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="auth-btn primary">
+                    <span class="btn-text">Create Account</span>
+                    <span class="btn-spinner" style="display: none;">🔄</span>
+                </button>
+            </form>
+        </div>
+
+        <div class="auth-message" id="auth-message" style="display: none;"></div>
+    </div>
+
+    <script src="js/auth.js"></script>
+</body>
+</html>
