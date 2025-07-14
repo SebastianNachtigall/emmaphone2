@@ -20,7 +20,7 @@ services:
     ports:
       - "3001:3001"
       - "3443:3443"
-    command: npm run dev
+    command: npm start
 
   livekit:
     environment:
