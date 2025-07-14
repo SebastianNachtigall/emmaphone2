@@ -3,28 +3,26 @@ version: '3.8'
 services:
   # LiveKit Server
   livekit:
-    image: livekit/livekit-server:latest
+    build: ./services/livekit
     ports:
       - "7880:7880"     # WebSocket
       - "7881:7881"     # WebSocket (TLS)
       - "7882:7882"     # HTTP API
       - "50000-50020:50000-50020/udp"  # WebRTC port range
     volumes:
-      - ./config/livekit.yaml:/etc/livekit.yaml
       - livekit-data:/data
     environment:
       - LIVEKIT_CONFIG_FILE=/etc/livekit.yaml
-    command: --config /etc/livekit.yaml
     restart: unless-stopped
 
   # EmmaPhone2 Web Application
   emmaphone:
-    build: .
+    build: ./docker/web
     ports:
       - "3001:3001"     # HTTP
       - "3443:3443"     # HTTPS
     volumes:
-      - ./certs:/app/certs
+      - ./web/certs:/app/certs
       - emmaphone-db:/app/data/db
     environment:
       - NODE_ENV=production

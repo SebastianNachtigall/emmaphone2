@@ -6,12 +6,12 @@ version: '3.8'
 services:
   emmaphone:
     build:
-      context: .
+      context: ./docker/web
       target: development
     volumes:
       # Mount source code for hot reload during development
-      - ./src:/app/src
-      - ./public:/app/public
+      - ./web/src:/app/src
+      - ./web/public:/app/public
       - ./data:/app/data
     environment:
       - NODE_ENV=development
@@ -24,8 +24,6 @@ services:
   livekit:
     environment:
       - LIVEKIT_DEV_MODE=true
-    volumes:
-      - ./config/livekit.yaml:/etc/livekit.yaml
 
   redis:
     ports:
