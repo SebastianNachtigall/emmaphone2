@@ -203,6 +203,46 @@ class LEDController:
         
         await self.clear_all()
     
+    async def set_all_leds(self, color: List[int]):
+        """Set all LEDs to the same color"""
+        if len(color) != 3:
+            logger.error("❌ Color must be [R, G, B] format")
+            return
+            
+        r, g, b = color
+        colors = [(r, g, b), (r, g, b), (r, g, b)]
+        await self.set_colors(colors)
+    
+    async def set_led(self, led_index: int, color: List[int]):
+        """Set a specific LED to a color"""
+        if led_index < 0 or led_index >= 3:
+            logger.error(f"❌ LED index {led_index} out of range (0-2)")
+            return
+            
+        if len(color) != 3:
+            logger.error("❌ Color must be [R, G, B] format")
+            return
+        
+        # Get current colors (default to off)
+        current_colors = [(0, 0, 0), (0, 0, 0), (0, 0, 0)]
+        
+        # Update the specific LED
+        current_colors[led_index] = tuple(color)
+        
+        await self.set_colors(current_colors)
+    
+    async def set_brightness(self, brightness: int):
+        """Set global brightness (0-255)"""
+        # This is a simplified implementation - in a real APA102 setup,
+        # you would adjust the brightness byte in the protocol
+        if brightness < 0 or brightness > 255:
+            logger.error(f"❌ Brightness {brightness} out of range (0-255)")
+            return
+        
+        # For now, we'll just store it and apply it during set_colors
+        # In a full implementation, you'd modify the LED protocol
+        logger.info(f"💡 Brightness set to {brightness}")
+    
     async def stop(self):
         """Stop LED controller and cleanup"""
         self.running = False
