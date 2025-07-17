@@ -259,6 +259,101 @@ class AudioManager:
             logger.error(f"❌ Error getting audio level: {e}")
             return 0.0
     
+    async def record_audio(self, duration: float = 3.0) -> Optional[bytes]:
+        """Record audio for specified duration and return raw audio data"""
+        logger.info(f"🎤 Recording audio for {duration} seconds")
+        
+        frames = []
+        
+        def record_callback(audio_data):
+            frames.append(audio_data.tobytes())
+        
+        try:
+            await self.start_recording(record_callback)
+            await asyncio.sleep(duration)
+            await self.stop_recording()
+            
+            if frames:
+                audio_data = b''.join(frames)
+                logger.info(f"✅ Recorded {len(audio_data)} bytes")
+                return audio_data
+            else:
+                logger.warning("⚠️  No audio data recorded")
+                return None
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to record audio: {e}")
+            return None
+    
+    async def save_audio(self, audio_data: bytes, filename: str):
+        """Save raw audio data to WAV file"""
+        try:
+            with wave.open(filename, 'wb') as wf:
+                wf.setnchannels(self.CHANNELS)
+                wf.setsampwidth(self.pyaudio_instance.get_sample_size(self.FORMAT))
+                wf.setframerate(self.SAMPLE_RATE)
+                wf.writeframes(audio_data)
+            
+            logger.info(f"✅ Audio saved to {filename}")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to save audio to {filename}: {e}")
+    
+    async def play_audio_file(self, filename: str):
+        """Play audio from WAV file"""
+        return await self.play_from_file(filename)
+    
+    async def monitor_audio_level(self, duration: float = 5.0, callback: Optional[Callable] = None):
+        """Monitor audio input levels for specified duration"""
+        logger.info(f"📊 Monitoring audio levels for {duration} seconds")
+        
+        levels = []
+        
+        def level_callback(audio_data):
+            # Calculate RMS level
+            rms = np.sqrt(np.mean(audio_data.astype(np.float32) ** 2))
+            level = min(rms / 32768.0, 1.0)
+            levels.append(level)
+            
+            if callback:
+                callback(level)
+        
+        try:
+            await self.start_recording(level_callback)
+            await asyncio.sleep(duration)
+            await self.stop_recording()
+            
+            if levels:
+                avg_level = np.mean(levels)
+                max_level = np.max(levels)
+                logger.info(f"📈 Average level: {avg_level:.3f}, Max level: {max_level:.3f}")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to monitor audio levels: {e}")
+    
+    async def get_device_info(self) -> list:
+        """Get detailed information about available audio devices"""
+        devices = []
+        
+        if not self.pyaudio_instance:
+            return devices
+        
+        info = self.pyaudio_instance.get_host_api_info_by_index(0)
+        device_count = info.get('deviceCount')
+        
+        for i in range(device_count):
+            device_info = self.pyaudio_instance.get_device_info_by_host_api_device_index(0, i)
+            
+            devices.append({
+                'index': i,
+                'name': device_info.get('name', 'Unknown'),
+                'max_input_channels': device_info.get('maxInputChannels', 0),
+                'max_output_channels': device_info.get('maxOutputChannels', 0),
+                'default_sample_rate': device_info.get('defaultSampleRate', 0)
+            })
+        
+        return devices
+    
     async def stop(self):
         """Stop all audio operations and cleanup"""
         await self.stop_recording()
