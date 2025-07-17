@@ -145,7 +145,7 @@ async def test_calling():
         # Test 7: Test hardware status updates
         logger.info("Test 7: Hardware status updates")
         
-        status_sequence = ["idle", "outgoing", "connected", "ended"]
+        status_sequence = ["ready", "connecting", "connected", "shutting_down"]
         
         for status in status_sequence:
             await led_controller.set_status(status)

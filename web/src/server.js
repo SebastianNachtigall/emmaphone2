@@ -556,6 +556,106 @@ async function generateToken(roomName, participantName) {
   return await at.toJwt();
 }
 
+// Pi device registration and calling endpoints
+app.post('/api/pi/register', async (req, res) => {
+  try {
+    const { device_id, device_name, user_id, capabilities } = req.body;
+    
+    if (!device_id || !device_name || !user_id) {
+      return res.status(400).json({ error: 'device_id, device_name, and user_id are required' });
+    }
+    
+    // Store Pi device registration (in production, this would be in database)
+    const deviceInfo = {
+      device_id,
+      device_name,
+      user_id,
+      capabilities: capabilities || [],
+      registered_at: new Date().toISOString(),
+      last_seen: new Date().toISOString()
+    };
+    
+    // For now, store in memory (in production, use database)
+    if (!global.piDevices) {
+      global.piDevices = new Map();
+    }
+    global.piDevices.set(device_id, deviceInfo);
+    
+    console.log('Pi device registered:', deviceInfo);
+    
+    res.json({ 
+      success: true, 
+      device: deviceInfo,
+      message: 'Pi device registered successfully' 
+    });
+    
+  } catch (error) {
+    console.error('Pi registration error:', error);
+    res.status(500).json({ error: 'Failed to register Pi device' });
+  }
+});
+
+app.get('/api/pi/devices', requireAuth, (req, res) => {
+  try {
+    const devices = global.piDevices ? Array.from(global.piDevices.values()) : [];
+    res.json(devices);
+  } catch (error) {
+    console.error('Error fetching Pi devices:', error);
+    res.status(500).json({ error: 'Failed to fetch Pi devices' });
+  }
+});
+
+app.post('/api/pi/call', requireAuth, async (req, res) => {
+  try {
+    const { target_device_id, caller_name } = req.body;
+    
+    if (!target_device_id) {
+      return res.status(400).json({ error: 'target_device_id is required' });
+    }
+    
+    // Check if target device exists
+    const targetDevice = global.piDevices?.get(target_device_id);
+    if (!targetDevice) {
+      return res.status(404).json({ error: 'Target Pi device not found' });
+    }
+    
+    // Generate call room
+    const callId = Math.random().toString(36).substring(2, 15);
+    const roomName = `call_${callId}`;
+    
+    // Create call info
+    const callInfo = {
+      call_id: callId,
+      room_name: roomName,
+      caller: req.session.user.username,
+      caller_name: caller_name || req.session.user.username,
+      target_device: target_device_id,
+      created_at: new Date().toISOString(),
+      status: 'initiated'
+    };
+    
+    // Store call info (in production, use database)
+    if (!global.activeCalls) {
+      global.activeCalls = new Map();
+    }
+    global.activeCalls.set(callId, callInfo);
+    
+    console.log('Call initiated to Pi device:', callInfo);
+    
+    // In a real implementation, this would trigger a Socket.IO event to the Pi device
+    // For now, just return the call info
+    res.json({
+      success: true,
+      call: callInfo,
+      message: 'Call initiated to Pi device'
+    });
+    
+  } catch (error) {
+    console.error('Pi call error:', error);
+    res.status(500).json({ error: 'Failed to initiate call to Pi device' });
+  }
+});
+
 // Create HTTP server
 const httpServer = http.createServer(app);
 
