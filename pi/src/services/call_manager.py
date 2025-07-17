@@ -13,9 +13,9 @@ from typing import Optional, Dict, Any, Callable
 from dataclasses import dataclass
 
 from .livekit_client import LiveKitClient
-from ..hardware.audio import AudioManager
-from ..hardware.leds import LEDController
-from ..hardware.button import ButtonHandler, ButtonAction
+from hardware.audio import AudioManager
+from hardware.leds import LEDController
+from hardware.button import ButtonHandler, ButtonAction
 
 logger = logging.getLogger(__name__)
 
