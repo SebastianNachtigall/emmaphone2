@@ -60,27 +60,28 @@ class LiveKitClient:
             raise
     
     async def get_access_token(self, room_name: str) -> str:
-        """Get access token from web server"""
+        """Generate access token locally using LiveKit credentials"""
         try:
-            # Get token from web server API
-            async with aiohttp.ClientSession() as session:
-                token_url = f"{self.server_url}/api/livekit-token"
-                
-                payload = {
-                    "roomName": room_name,
-                    "participantName": self.participant_identity
-                }
-                
-                async with session.post(token_url, json=payload) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        return data["token"]
-                    else:
-                        error_text = await response.text()
-                        raise Exception(f"Token request failed: {response.status} - {error_text}")
+            from livekit import api
+            
+            # Create access token locally
+            token = api.AccessToken(self.api_key, self.api_secret)
+            token.with_identity(self.participant_identity)
+            token.with_name(self.participant_identity)
+            token.with_grants(api.VideoGrants(
+                room_join=True,
+                room=room_name,
+                can_publish=True,
+                can_subscribe=True,
+                can_publish_data=True
+            ))
+            
+            jwt_token = token.to_jwt()
+            logger.info(f"✅ Generated local access token for room: {room_name}")
+            return jwt_token
                         
         except Exception as e:
-            logger.error(f"❌ Failed to get access token: {e}")
+            logger.error(f"❌ Failed to generate access token: {e}")
             raise
     
     async def join_room(self, room_name: str, token: Optional[str] = None) -> bool:
@@ -91,7 +92,7 @@ class LiveKitClient:
             
             # Connect to the room
             await self.room.connect(
-                url=self.server_url.replace("http://", "ws://").replace("https://", "wss://"),
+                url=self.server_url,  # URL should already be wss:// format
                 token=token
             )
             
