@@ -35,6 +35,11 @@ class AudioManager:
     async def initialize(self):
         """Initialize PyAudio"""
         try:
+            # Suppress ALSA warnings
+            import os
+            os.environ['ALSA_PCM_CARD'] = '1'
+            os.environ['ALSA_PCM_DEVICE'] = '0'
+            
             self.pyaudio_instance = pyaudio.PyAudio()
             
             # List available devices
