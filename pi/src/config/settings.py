@@ -59,9 +59,9 @@ class Settings:
                 "ssl_enabled": False
             },
             "livekit": {
-                "url": "wss://your-livekit-server.com",
-                "api_key": "",
-                "api_secret": "",
+                "url": "wss://emmaphone2-livekit-production.up.railway.app",
+                "api_key": "APIKeySecret_emmaphone2_static",
+                "api_secret": "emmaphone2_static_secret_key_64chars_long_for_proper_security",
                 "room_prefix": "emmaphone"
             },
             "user": {
