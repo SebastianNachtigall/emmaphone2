@@ -159,11 +159,65 @@ REDIS_URL=redis://localhost:6379  # Optional Redis for sessions
 - Speed dial positions 1-4 are available for contacts
 - Call logs are automatically recorded in database
 
+## Raspberry Pi Development (Current Focus)
+
+### Hardware Setup
+- **Target Device**: Raspberry Pi Zero 2 W (512MB RAM, ARM64)
+- **Audio HAT**: ReSpeaker 2-Mics Pi HAT v2.0 from Seeed Studio
+  - 2 analog microphones (dual-mic array)
+  - 3 x APA102 RGB LEDs (GPIO5/6 SPI control)
+  - 1 User Button (GPIO17)
+  - 3.5mm audio jack (speaker connected)
+  - Audio drivers already installed and working (alsamixer, aplay, arecord)
+
+### Development Strategy
+- **Language**: Python (not Node.js) for Pi development
+- **Architecture**: Web App (Node.js) ↔ Pi App (Python) via HTTP/WebSocket
+- **LiveKit**: Testing LiveKit Python SDK for direct WebRTC audio
+- **Environment**: Python venv for clean, reproducible development
+
+### Pi Application Requirements
+1. **Boot Sequence**: 
+   - Check WiFi config → Connect OR start AP mode for setup
+   - WiFi setup via hotspot "EmmaPhone-Setup" if no config
+   - Web interface for user authentication once connected
+   - Main calling application with hardware controls
+
+2. **Hardware Integration**:
+   - Button control (GPIO17) for speed dial/call actions
+   - LED status indicators (3 RGB LEDs) for system state
+   - Audio I/O via ReSpeaker HAT (PyAudio interface)
+   - WiFi management and AP mode capability
+
+3. **State Management**:
+   - setup_needed (red LED) → connecting (yellow) → ready (green)
+   - incoming_call (blue pulse) → in_call (blue solid)
+   - Button actions: short=answer, long=speed_dial, double=hangup
+
+### Development Environment Setup
+- **Git**: Configured on Pi with SSH keys
+- **Virtual Environment**: `~/emmaphone2/pi/venv/` for clean installs
+- **Reset Script**: `setup_pi_env.sh` for returning to clean state
+- **Dependencies**: LiveKit Python SDK, RPi.GPIO, PyAudio, requests, websockets
+
+### Next Steps
+1. Test LiveKit Python SDK compatibility on Pi Zero 2
+2. Verify ReSpeaker HAT integration with Python
+3. Create basic project structure with WiFi manager
+4. Implement hardware control interfaces
+5. Build web interface for authentication and setup
+
+### Code Reuse Strategy
+- **HTML/CSS**: Adapt web app templates for Pi web interface
+- **API Contracts**: Same endpoints, Python implementation
+- **Authentication**: Same flow, different backend
+- **Cannot Reuse**: LiveKit Web SDK (testing Python equivalent)
+
 ## Future Development
 
 The project is structured to support:
-- Raspberry Pi hardware integration (`pi/` directory)
-- Hardware button interface
-- WiFi setup wizard
-- GPIO audio drivers
-- Systemd service configuration
+- Raspberry Pi hardware integration (`pi/` directory) - IN PROGRESS
+- Hardware button interface - PLANNED
+- WiFi setup wizard - PLANNED
+- GPIO audio drivers - PLANNED
+- Systemd service configuration - PLANNED
