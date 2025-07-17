@@ -189,37 +189,37 @@ class LiveKitClient:
         return self.room.name if self.room else None
     
     # Event handlers
-    async def _on_connected(self):
+    def _on_connected(self):
         """Handle room connection"""
         self.connected = True
         logger.info("🔗 Connected to LiveKit room")
         
         if self.on_connected:
-            await self._safe_callback(self.on_connected)
+            asyncio.create_task(self._safe_callback(self.on_connected))
     
-    async def _on_disconnected(self):
+    def _on_disconnected(self):
         """Handle room disconnection"""
         self.connected = False
         logger.info("🔌 Disconnected from LiveKit room")
         
         if self.on_disconnected:
-            await self._safe_callback(self.on_disconnected)
+            asyncio.create_task(self._safe_callback(self.on_disconnected))
     
-    async def _on_participant_connected(self, participant):
+    def _on_participant_connected(self, participant):
         """Handle participant joining"""
         logger.info(f"👋 Participant joined: {participant.identity}")
         
         if self.on_participant_joined:
-            await self._safe_callback(self.on_participant_joined, participant)
+            asyncio.create_task(self._safe_callback(self.on_participant_joined, participant))
     
-    async def _on_participant_disconnected(self, participant):
+    def _on_participant_disconnected(self, participant):
         """Handle participant leaving"""
         logger.info(f"👋 Participant left: {participant.identity}")
         
         if self.on_participant_left:
-            await self._safe_callback(self.on_participant_left, participant)
+            asyncio.create_task(self._safe_callback(self.on_participant_left, participant))
     
-    async def _on_track_subscribed(self, track, publication, participant):
+    def _on_track_subscribed(self, track, publication, participant):
         """Handle track subscription"""
         logger.info(f"📡 Track subscribed: {track.kind} from {participant.identity}")
         
@@ -227,9 +227,9 @@ class LiveKitClient:
             self.remote_audio_track = track
             
             if self.on_audio_received:
-                await self._safe_callback(self.on_audio_received, track, participant)
+                asyncio.create_task(self._safe_callback(self.on_audio_received, track, participant))
     
-    async def _on_track_unsubscribed(self, track, publication, participant):
+    def _on_track_unsubscribed(self, track, publication, participant):
         """Handle track unsubscription"""
         logger.info(f"📡 Track unsubscribed: {track.kind} from {participant.identity}")
         

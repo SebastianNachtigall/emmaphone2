@@ -397,42 +397,54 @@ class CallManager:
             logger.error(f"❌ Failed to handle call end: {e}")
     
     # LiveKit event handlers
-    async def _on_livekit_connected(self):
+    def _on_livekit_connected(self):
         """Handle LiveKit connection"""
         logger.info("🔗 LiveKit connected")
         
         # Start audio publishing
-        try:
-            await self.livekit_client.publish_audio_track(self.audio_manager)
-            await self.audio_manager.start_recording()
-            
-        except Exception as e:
-            logger.error(f"❌ Failed to start audio: {e}")
+        async def start_audio():
+            try:
+                await self.livekit_client.publish_audio_track(self.audio_manager)
+                await self.audio_manager.start_recording()
+                
+            except Exception as e:
+                logger.error(f"❌ Failed to start audio: {e}")
+        
+        asyncio.create_task(start_audio())
     
-    async def _on_livekit_disconnected(self):
+    def _on_livekit_disconnected(self):
         """Handle LiveKit disconnection"""
         logger.info("🔌 LiveKit disconnected")
         
         # Stop audio
-        await self.audio_manager.stop_recording()
-        await self.audio_manager.stop_playback()
+        async def stop_audio():
+            await self.audio_manager.stop_recording()
+            await self.audio_manager.stop_playback()
+        
+        asyncio.create_task(stop_audio())
     
-    async def _on_participant_joined(self, participant):
+    def _on_participant_joined(self, participant):
         """Handle participant joining"""
         logger.info(f"👋 Participant joined: {participant.identity}")
         
         # Start audio playback when someone joins
-        if self.call_state == CallState.CONNECTED:
-            await self.audio_manager.start_playback()
+        async def start_playback():
+            if self.call_state == CallState.CONNECTED:
+                await self.audio_manager.start_playback()
+        
+        asyncio.create_task(start_playback())
     
-    async def _on_participant_left(self, participant):
+    def _on_participant_left(self, participant):
         """Handle participant leaving"""
         logger.info(f"👋 Participant left: {participant.identity}")
         
         # End call if last participant left
-        participants = self.livekit_client.get_participants()
-        if len(participants) == 0:
-            await self._end_call()
+        async def check_end_call():
+            participants = self.livekit_client.get_participants()
+            if len(participants) == 0:
+                await self._end_call()
+        
+        asyncio.create_task(check_end_call())
     
     # Button event handlers
     async def _on_button_short_press(self, action):
