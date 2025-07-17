@@ -68,6 +68,11 @@ class Settings:
                 "name": "",
                 "contacts": [],
                 "speed_dial": {}
+            },
+            "device": {
+                "id": "pi_001",
+                "name": "EmmaPhone Pi",
+                "type": "pi_zero_2w"
             }
         }
         

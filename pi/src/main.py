@@ -15,8 +15,10 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from hardware.leds import LEDController
 from hardware.audio import AudioManager
-from hardware.button import ButtonHandler
+from hardware.button import ButtonHandler, ButtonAction
 from services.wifi_manager import WiFiManager
+from services.livekit_client import LiveKitClient
+from services.call_manager import CallManager
 from config.settings import Settings
 
 # Configure logging
@@ -35,6 +37,11 @@ class EmmaPhoneApp:
         self.audio_manager = AudioManager()
         self.button_handler = ButtonHandler()
         self.wifi_manager = WiFiManager()
+        
+        # Calling system components
+        self.livekit_client = None
+        self.call_manager = None
+        
         self.running = False
         
     async def initialize(self):
@@ -64,12 +71,58 @@ class EmmaPhoneApp:
         logger.info("📞 Starting main calling application")
         await self.led_controller.set_status("ready")
         
-        # TODO: Initialize LiveKit connection
-        # TODO: Start call listening service
-        # TODO: Handle button presses for speed dial
-        
-        # For now, just wait for button presses
-        await self.button_handler.wait_for_press()
+        try:
+            # Initialize LiveKit client
+            livekit_config = self.settings.get_livekit_config()
+            server_url = livekit_config.get("url", "ws://localhost:7880")
+            api_key = livekit_config.get("api_key", "")
+            api_secret = livekit_config.get("api_secret", "")
+            
+            if not api_key or not api_secret:
+                logger.error("❌ LiveKit credentials not configured")
+                await self.led_controller.set_status("setup_needed")
+                return
+            
+            self.livekit_client = LiveKitClient(server_url, api_key, api_secret)
+            
+            # Get device identity
+            device_id = f"pi_{self.settings.get('device.id', 'unknown')}"
+            await self.livekit_client.initialize(device_id)
+            
+            # Initialize call manager
+            self.call_manager = CallManager(
+                server_url=server_url.replace("ws://", "http://").replace("wss://", "https://"),
+                device_id=device_id,
+                livekit_client=self.livekit_client,
+                audio_manager=self.audio_manager,
+                led_controller=self.led_controller,
+                button_handler=self.button_handler
+            )
+            
+            await self.call_manager.initialize()
+            
+            # Register device with server
+            device_name = self.settings.get('device.name', 'EmmaPhone Pi')
+            user_id = self.settings.get('user.id', '1')  # Default to first user
+            
+            await self.call_manager.register_device(device_name, user_id)
+            
+            logger.info("✅ Calling system initialized")
+            
+            # Set up button handlers for speed dial
+            self.button_handler.register_callback(
+                ButtonAction.DOUBLE_PRESS, 
+                self._on_speed_dial_1
+            )
+            self.button_handler.register_callback(
+                ButtonAction.TRIPLE_PRESS, 
+                self._on_speed_dial_2
+            )
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize calling system: {e}")
+            await self.led_controller.set_status("error")
+            return
         
     async def start_setup_mode(self):
         """Start WiFi setup mode"""
@@ -80,6 +133,50 @@ class EmmaPhoneApp:
         # TODO: Wait for configuration
         
         await self.led_controller.set_status("setup_mode")
+    
+    async def _on_speed_dial_1(self, action):
+        """Handle speed dial 1 (double press)"""
+        try:
+            if not self.call_manager:
+                logger.warning("⚠️ Call manager not initialized")
+                return
+            
+            # Get speed dial contact
+            contact_id = self.settings.get_speed_dial(1)
+            if not contact_id:
+                logger.warning("⚠️ No speed dial contact configured for position 1")
+                await self.led_controller.set_status("error")
+                await asyncio.sleep(1)
+                await self.led_controller.set_status("ready")
+                return
+            
+            logger.info(f"📞 Speed dial 1: calling {contact_id}")
+            await self.call_manager.initiate_call(contact_id)
+            
+        except Exception as e:
+            logger.error(f"❌ Speed dial 1 failed: {e}")
+    
+    async def _on_speed_dial_2(self, action):
+        """Handle speed dial 2 (triple press)"""
+        try:
+            if not self.call_manager:
+                logger.warning("⚠️ Call manager not initialized")
+                return
+            
+            # Get speed dial contact
+            contact_id = self.settings.get_speed_dial(2)
+            if not contact_id:
+                logger.warning("⚠️ No speed dial contact configured for position 2")
+                await self.led_controller.set_status("error")
+                await asyncio.sleep(1)
+                await self.led_controller.set_status("ready")
+                return
+            
+            logger.info(f"📞 Speed dial 2: calling {contact_id}")
+            await self.call_manager.initiate_call(contact_id)
+            
+        except Exception as e:
+            logger.error(f"❌ Speed dial 2 failed: {e}")
         
     async def shutdown(self):
         """Clean shutdown of all services"""
@@ -87,6 +184,12 @@ class EmmaPhoneApp:
         self.running = False
         
         await self.led_controller.set_status("shutting_down")
+        
+        # Stop calling system
+        if self.call_manager:
+            await self.call_manager.stop()
+        
+        # Stop hardware
         await self.audio_manager.stop()
         await self.button_handler.stop()
         await self.led_controller.stop()
