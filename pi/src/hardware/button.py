@@ -44,8 +44,18 @@ class ButtonHandler:
         """Initialize button handler"""
         if GPIO_AVAILABLE and not self.use_keyboard:
             try:
+                # Clean up any existing GPIO setup
+                try:
+                    GPIO.cleanup()
+                except:
+                    pass
+                
+                # Initialize GPIO
                 GPIO.setmode(GPIO.BCM)
                 GPIO.setup(self.BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+                
+                # Small delay to ensure GPIO is ready
+                await asyncio.sleep(0.1)
                 
                 # Set up interrupt for button press
                 GPIO.add_event_detect(
@@ -59,6 +69,7 @@ class ButtonHandler:
                 
             except Exception as e:
                 logger.error(f"❌ Failed to initialize GPIO, falling back to keyboard: {e}")
+                logger.error(f"   Error details: {type(e).__name__}: {e}")
                 self.use_keyboard = True
         
         if self.use_keyboard:

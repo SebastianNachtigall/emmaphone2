@@ -14,7 +14,11 @@ logger = logging.getLogger(__name__)
 class Settings:
     """Application settings manager"""
     
-    def __init__(self, config_dir: str = "/home/pi/.emmaphone"):
+    def __init__(self, config_dir: str = None):
+        if config_dir is None:
+            # Use current user's home directory instead of hardcoded /home/pi
+            import os
+            config_dir = os.path.expanduser("~/.emmaphone")
         self.config_dir = Path(config_dir)
         self.config_file = self.config_dir / "settings.json"
         self.auth_file = self.config_dir / "auth.json"
