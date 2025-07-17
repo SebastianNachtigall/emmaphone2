@@ -98,6 +98,49 @@ emmaphone2/
 
 ### Railway Configuration
 - Builds from `docker/web/Dockerfile`
+
+## Pi Development Status (July 2025)
+
+### ✅ Completed Pi Implementation
+- **Hardware Integration**: LED controller, audio manager (PyAudio), button handler with GPIO fallback
+- **LiveKit Client**: Direct connection to Railway LiveKit server (`wss://emmaphone2-livekit-production.up.railway.app`)
+- **Settings Management**: JSON-based config with Railway LiveKit credentials
+- **Audio System**: ReSpeaker 2-Mics Pi HAT working with PyAudio
+- **Call Infrastructure**: Call manager with state management (idle, outgoing, connected, etc.)
+- **Testing**: Comprehensive test scripts for hardware and calling functionality
+
+### 🔧 Working Configuration
+- **LiveKit URL**: `wss://emmaphone2-livekit-production.up.railway.app`
+- **API Key**: `APIKeySecret_emmaphone2_static`
+- **API Secret**: `emmaphone2_static_secret_key_64chars_long_for_proper_security`
+- **Token Generation**: Pi generates own JWT tokens using LiveKit API (no web server dependency)
+- **Hardware**: Pi Zero 2 W with ReSpeaker 2-Mics Pi HAT v2.0
+
+### 🎯 Current Status
+- **Pi-to-LiveKit Connection**: ✅ WORKING - Pi can connect directly to Railway LiveKit
+- **Web Client**: ✅ WORKING - User management with quick dial buttons at https://emmaphone2-production.up.railway.app/
+- **Audio Flow**: ✅ WORKING - Bidirectional audio between Pi and web browsers
+- **Room System**: Pi uses test rooms, web client uses user-based calling (different approaches)
+
+### 🚀 Next Steps for Tomorrow
+1. **Room Coordination**: Bridge Pi room-based calling with web client's user-based calling
+2. **User Integration**: Connect Pi devices to specific users in the web client
+3. **Call Initiation**: Allow web users to call Pi devices through existing UI
+4. **Production Integration**: Move from test rooms to proper user-room coordination
+
+### 📁 Key Files
+- `pi/src/services/livekit_client.py` - Direct LiveKit connection with local token generation
+- `pi/src/services/call_manager.py` - Call state management and hardware integration
+- `pi/src/hardware/` - LED, audio, button interfaces for ReSpeaker HAT
+- `pi/src/config/settings.py` - Railway LiveKit configuration
+- `pi/test_pi_web_call.py` - Working Pi-to-web test script
+
+### 🔍 Technical Notes
+- Pi generates JWT tokens locally using `livekit.api.AccessToken`
+- Audio managed through PyAudio with ReSpeaker HAT (device index 1)
+- GPIO fallback to keyboard for button testing
+- Settings stored in `~/.emmaphone/settings.json`
+- Web client has user management but no "join room" feature (uses quick dial buttons)
 - Web service exposed on ports 3001 (HTTP) and 3443 (HTTPS)
 - LiveKit service on port 7880
 - Redis service on port 6379
