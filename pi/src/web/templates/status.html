@@ -1,0 +1,393 @@
+{% extends "base.html" %}
+
+{% block title %}System Status - EmmaPhone2 Pi{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-info-circle"></i> System Status
+            <small class="text-muted">- Real-time system monitoring</small>
+        </h1>
+    </div>
+</div>
+
+<!-- Status Overview -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="fas fa-server fa-2x text-primary mb-2"></i>
+                <h6 class="card-title">System</h6>
+                <span class="badge bg-success" id="system-status">Online</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="fas fa-wifi fa-2x text-info mb-2"></i>
+                <h6 class="card-title">WiFi</h6>
+                <span class="badge bg-success" id="wifi-status">Connected</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="fas fa-globe fa-2x text-warning mb-2"></i>
+                <h6 class="card-title">Web Client</h6>
+                <span class="badge bg-secondary" id="web-client-status">Unknown</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="fas fa-phone fa-2x text-success mb-2"></i>
+                <h6 class="card-title">Call System</h6>
+                <span class="badge bg-info" id="call-system-status">Ready</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Status -->
+<div class="row">
+    <!-- User Configuration -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user"></i> User Configuration
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if settings.is_user_configured() %}
+                    {% set user_creds = settings.get_user_credentials() %}
+                    <table class="table table-borderless">
+                        <tr>
+                            <td><strong>Username:</strong></td>
+                            <td>{{ user_creds.username }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Display Name:</strong></td>
+                            <td>{{ user_creds.display_name }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>User ID:</strong></td>
+                            <td>{{ user_creds.user_id or "Not assigned" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Status:</strong></td>
+                            <td><span class="badge bg-success">Configured</span></td>
+                        </tr>
+                    </table>
+                {% else %}
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                        <p>User not configured</p>
+                        <a href="{{ url_for('setup') }}" class="btn btn-warning">
+                            <i class="fas fa-user-cog"></i> Setup User
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Network Configuration -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-network-wired"></i> Network Configuration
+                </h5>
+            </div>
+            <div class="card-body">
+                {% set web_config = settings.get_web_client_config() %}
+                {% set livekit_config = settings.get_livekit_config() %}
+                <table class="table table-borderless">
+                    <tr>
+                        <td><strong>Web Server:</strong></td>
+                        <td>
+                            <a href="{{ web_config.url }}" target="_blank">{{ web_config.url }}</a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>LiveKit Server:</strong></td>
+                        <td>{{ livekit_config.url }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Pi Web Interface:</strong></td>
+                        <td>http://{{ request.host }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>API Status:</strong></td>
+                        <td><span class="badge bg-secondary" id="api-status">Testing...</span></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Call Status -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-phone-alt"></i> Call Status
+                </h5>
+            </div>
+            <div class="card-body" id="call-status-details">
+                <table class="table table-borderless">
+                    <tr>
+                        <td><strong>State:</strong></td>
+                        <td><span class="badge bg-info" id="call-state">Idle</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Current Call:</strong></td>
+                        <td id="current-call-info">None</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Last Update:</strong></td>
+                        <td id="last-call-update">-</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Speed Dial -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-tachometer-alt"></i> Speed Dial Contacts
+                </h5>
+            </div>
+            <div class="card-body">
+                {% set contacts = settings.get_contacts() %}
+                {% if contacts %}
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Pos</th>
+                                <th>Name</th>
+                                <th>User ID</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for contact in contacts %}
+                                <tr>
+                                    <td><strong>{{ contact.speed_dial }}</strong></td>
+                                    <td>{{ contact.name }}</td>
+                                    <td>{{ contact.user_id }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-success" 
+                                                onclick="testCall('{{ contact.user_id }}', '{{ contact.name }}')">
+                                            <i class="fas fa-phone"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="text-center">
+                        <i class="fas fa-address-book fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">No contacts configured</p>
+                        <a href="{{ url_for('contacts') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-plus"></i> Add Contacts
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Hardware Status -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-microchip"></i> Hardware Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <td><strong>Audio Device:</strong></td>
+                        <td>ReSpeaker 2-Mics HAT</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Audio Status:</strong></td>
+                        <td><span class="badge bg-success" id="audio-status">Ready</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>LED Controller:</strong></td>
+                        <td><span class="badge bg-success" id="led-status">Active</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Button Handler:</strong></td>
+                        <td><span class="badge bg-success" id="button-status">Ready</span></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- System Information -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info"></i> System Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <td><strong>Device ID:</strong></td>
+                        <td>{{ settings.get('device.id', 'pi_001') }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Device Name:</strong></td>
+                        <td>{{ settings.get('device.name', 'EmmaPhone Pi') }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Web Interface:</strong></td>
+                        <td><span class="badge bg-success">Running</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Last Status Update:</strong></td>
+                        <td id="last-status-update">-</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Refresh Button -->
+<div class="row">
+    <div class="col-12 text-center">
+        <button class="btn btn-primary" onclick="refreshStatus()">
+            <i class="fas fa-sync-alt"></i> Refresh Status
+        </button>
+        <button class="btn btn-secondary ms-2" onclick="downloadLogs()">
+            <i class="fas fa-download"></i> Download Logs
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Handle status updates
+window.addEventListener('statusUpdate', function(event) {
+    const status = event.detail;
+    updateStatusDisplay(status);
+});
+
+function updateStatusDisplay(status) {
+    // Update last status time
+    const lastUpdate = new Date(status.timestamp);
+    document.getElementById('last-status-update').textContent = lastUpdate.toLocaleString();
+    
+    // Update web client status
+    const webClientStatus = document.getElementById('web-client-status');
+    if (status.web_client_connected) {
+        webClientStatus.textContent = 'Connected';
+        webClientStatus.className = 'badge bg-success';
+    } else {
+        webClientStatus.textContent = 'Disconnected';
+        webClientStatus.className = 'badge bg-danger';
+    }
+    
+    // Update call status
+    const callState = document.getElementById('call-state');
+    const callInfo = document.getElementById('current-call-info');
+    const lastCallUpdate = document.getElementById('last-call-update');
+    
+    callState.textContent = status.call_state.charAt(0).toUpperCase() + status.call_state.slice(1);
+    
+    if (status.call_state === 'connected') {
+        callState.className = 'badge bg-success';
+    } else if (status.call_state === 'incoming' || status.call_state === 'outgoing') {
+        callState.className = 'badge bg-warning';
+    } else {
+        callState.className = 'badge bg-info';
+    }
+    
+    if (status.current_call) {
+        callInfo.textContent = `${status.current_call.caller_name} ↔ ${status.current_call.callee_name}`;
+    } else {
+        callInfo.textContent = 'None';
+    }
+    
+    lastCallUpdate.textContent = lastUpdate.toLocaleString();
+}
+
+function refreshStatus() {
+    socket.emit('get_status');
+    
+    // Visual feedback
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+    btn.disabled = true;
+    
+    setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }, 1000);
+}
+
+function testCall(userId, contactName) {
+    if (confirm(`Test call to ${contactName}?`)) {
+        fetch(`/api/call/${userId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Test call initiated to ${contactName}!`);
+            } else {
+                alert(`Failed to call ${contactName}: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert(`Failed to call ${contactName}`);
+        });
+    }
+}
+
+function downloadLogs() {
+    // This would need a backend endpoint to serve logs
+    alert('Log download feature would be implemented here');
+}
+
+// Test API connectivity on page load
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/status')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('api-status').textContent = 'Connected';
+            document.getElementById('api-status').className = 'badge bg-success';
+        })
+        .catch(error => {
+            document.getElementById('api-status').textContent = 'Failed';
+            document.getElementById('api-status').className = 'badge bg-danger';
+        });
+});
+</script>
+{% endblock %}

@@ -21,6 +21,7 @@ from services.livekit_client import LiveKitClient
 from services.call_manager_v2 import CallManagerV2
 from services.user_manager import UserManager
 from config.settings import Settings
+from web.server import PiWebServer
 
 # Configure logging
 logging.basicConfig(
@@ -43,6 +44,9 @@ class EmmaPhoneApp:
         self.livekit_client = None
         self.user_manager = None
         self.call_manager = None
+        
+        # Web interface
+        self.web_server = None
         
         self.running = False
         
@@ -116,6 +120,9 @@ class EmmaPhoneApp:
             
             logger.info("✅ Calling system initialized")
             
+            # Initialize web server
+            await self.start_web_server()
+            
             # Set up button handlers for speed dial
             self.button_handler.register_callback(
                 ButtonAction.DOUBLE_PRESS, 
@@ -167,6 +174,38 @@ class EmmaPhoneApp:
         logger.info("✅ User configuration detected - restarting application")
         await self.start_main_app()
     
+    async def start_web_server(self):
+        """Start the web interface server"""
+        try:
+            web_port = self.settings.get('web_server.port', 8080)
+            
+            # Initialize web server
+            self.web_server = PiWebServer(self.settings, port=web_port)
+            
+            # Set manager references for status monitoring
+            self.web_server.set_managers(
+                call_manager=self.call_manager,
+                user_manager=self.user_manager,
+                audio_manager=self.audio_manager,
+                led_controller=self.led_controller
+            )
+            
+            # Start web server in background thread
+            import threading
+            web_thread = threading.Thread(
+                target=self.web_server.run, 
+                kwargs={'host': '0.0.0.0', 'debug': False},
+                daemon=True
+            )
+            web_thread.start()
+            
+            logger.info(f"✅ Web interface started on http://0.0.0.0:{web_port}")
+            logger.info(f"💻 Access from browser: http://pi.local:{web_port} or http://<pi-ip>:{web_port}")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to start web server: {e}")
+            # Don't fail the whole app if web server fails
+    
     async def _on_speed_dial_1(self, action):
         """Handle speed dial 1 (double press)"""
         try:
@@ -217,6 +256,10 @@ class EmmaPhoneApp:
         self.running = False
         
         await self.led_controller.set_status("shutting_down")
+        
+        # Stop web server
+        if self.web_server:
+            self.web_server.stop()
         
         # Stop calling system
         if self.call_manager:

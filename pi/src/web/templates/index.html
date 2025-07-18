@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - EmmaPhone2 Pi{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-home"></i> Dashboard
+            <small class="text-muted">- EmmaPhone2 Pi Control Center</small>
+        </h1>
+    </div>
+</div>
+
+<!-- Status Cards -->
+<div class="row mb-4">
+    <!-- User Status -->
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-user card-icon text-{% if settings.is_user_configured() %}success{% else %}warning{% endif %}"></i>
+                <h6 class="card-title">User Setup</h6>
+                <p class="card-text">
+                    {% if settings.is_user_configured() %}
+                        <span class="text-success">✓ Configured</span>
+                    {% else %}
+                        <span class="text-warning">⚠ Setup Required</span>
+                    {% endif %}
+                </p>
+                {% if not settings.is_user_configured() %}
+                    <a href="{{ url_for('setup') }}" class="btn btn-warning btn-sm">Setup Now</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Call Status -->
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-phone card-icon text-info" id="call-status-icon"></i>
+                <h6 class="card-title">Call Status</h6>
+                <p class="card-text">
+                    <span id="call-status-text">Idle</span>
+                </p>
+                <div id="call-actions" style="display: none;">
+                    <button class="btn btn-danger btn-sm" onclick="hangUpCall()">
+                        <i class="fas fa-phone-slash"></i> Hang Up
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Connection Status -->
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-wifi card-icon text-success" id="wifi-status-icon"></i>
+                <h6 class="card-title">Connection</h6>
+                <p class="card-text">
+                    <span id="wifi-status-text">Connected</span><br>
+                    <small class="text-muted" id="web-client-status">Web Client: Unknown</small>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Audio Status -->
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-microphone card-icon text-success"></i>
+                <h6 class="card-title">Audio</h6>
+                <p class="card-text">
+                    <span id="audio-status-text">Ready</span><br>
+                    <small class="text-muted">ReSpeaker HAT</small>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Speed Dial -->
+{% if settings.is_user_configured() %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-tachometer-alt"></i> Speed Dial
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% set contacts = settings.get_contacts() %}
+                    {% for position in range(1, 5) %}
+                        {% set contact = contacts | selectattr('speed_dial', 'equalto', position) | first %}
+                        <div class="col-md-3 mb-3">
+                            <div class="card speed-dial-card" data-position="{{ position }}">
+                                <div class="card-body text-center">
+                                    <div class="speed-dial-number">{{ position }}</div>
+                                    {% if contact %}
+                                        <h6 class="card-title">{{ contact.name }}</h6>
+                                        <p class="card-text">
+                                            <small class="text-muted">ID: {{ contact.user_id }}</small>
+                                        </p>
+                                        <button class="btn btn-success btn-sm" onclick="initiateCall('{{ contact.user_id }}', '{{ contact.name }}')">
+                                            <i class="fas fa-phone"></i> Call
+                                        </button>
+                                    {% else %}
+                                        <h6 class="card-title text-muted">Empty</h6>
+                                        <p class="card-text">
+                                            <a href="{{ url_for('contacts') }}" class="btn btn-outline-secondary btn-sm">
+                                                <i class="fas fa-plus"></i> Add Contact
+                                            </a>
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('contacts') }}" class="btn btn-primary">
+                        <i class="fas fa-address-book"></i> Manage Contacts
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Current Call Info -->
+<div class="row mb-4" id="current-call-info" style="display: none;">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-phone-alt"></i> Current Call
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Caller:</h6>
+                        <p id="current-caller">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Duration:</h6>
+                        <p id="current-duration">-</p>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <button class="btn btn-danger" onclick="hangUpCall()">
+                        <i class="fas fa-phone-slash"></i> Hang Up
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt"></i> Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('setup') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-user-cog"></i><br>User Setup
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('contacts') }}" class="btn btn-outline-info w-100">
+                            <i class="fas fa-address-book"></i><br>Manage Contacts
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('status') }}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-info-circle"></i><br>System Status
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('config') }}" class="btn btn-outline-warning w-100">
+                            <i class="fas fa-cog"></i><br>Configuration
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.speed-dial-card {
+    height: 180px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.speed-dial-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.speed-dial-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 10px;
+}
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let callStartTime = null;
+let durationInterval = null;
+
+// Handle status updates
+window.addEventListener('statusUpdate', function(event) {
+    const status = event.detail;
+    updateDashboard(status);
+});
+
+function updateDashboard(status) {
+    // Update call status
+    const callStatusIcon = document.getElementById('call-status-icon');
+    const callStatusText = document.getElementById('call-status-text');
+    const callActions = document.getElementById('call-actions');
+    const currentCallInfo = document.getElementById('current-call-info');
+    
+    if (status.call_state === 'connected' && status.current_call) {
+        callStatusIcon.className = 'fas fa-phone card-icon text-success';
+        callStatusText.textContent = 'In Call';
+        callActions.style.display = 'block';
+        currentCallInfo.style.display = 'block';
+        
+        document.getElementById('current-caller').textContent = status.current_call.caller_name;
+        
+        // Start duration timer
+        if (status.current_call.start_time && !callStartTime) {
+            callStartTime = new Date(status.current_call.start_time * 1000);
+            startDurationTimer();
+        }
+    } else if (status.call_state === 'incoming') {
+        callStatusIcon.className = 'fas fa-phone-alt card-icon text-warning';
+        callStatusText.textContent = 'Incoming Call';
+        callActions.style.display = 'block';
+        currentCallInfo.style.display = 'none';
+    } else if (status.call_state === 'outgoing') {
+        callStatusIcon.className = 'fas fa-phone card-icon text-info';
+        callStatusText.textContent = 'Calling...';
+        callActions.style.display = 'block';
+        currentCallInfo.style.display = 'none';
+    } else {
+        callStatusIcon.className = 'fas fa-phone card-icon text-info';
+        callStatusText.textContent = 'Idle';
+        callActions.style.display = 'none';
+        currentCallInfo.style.display = 'none';
+        stopDurationTimer();
+    }
+    
+    // Update connection status
+    const webClientStatus = document.getElementById('web-client-status');
+    if (status.web_client_connected) {
+        webClientStatus.textContent = 'Web Client: Connected';
+        webClientStatus.className = 'text-success';
+    } else {
+        webClientStatus.textContent = 'Web Client: Disconnected';
+        webClientStatus.className = 'text-danger';
+    }
+}
+
+function startDurationTimer() {
+    if (durationInterval) clearInterval(durationInterval);
+    
+    durationInterval = setInterval(function() {
+        if (callStartTime) {
+            const now = new Date();
+            const diff = Math.floor((now - callStartTime) / 1000);
+            const minutes = Math.floor(diff / 60);
+            const seconds = diff % 60;
+            document.getElementById('current-duration').textContent = 
+                `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+    }, 1000);
+}
+
+function stopDurationTimer() {
+    if (durationInterval) {
+        clearInterval(durationInterval);
+        durationInterval = null;
+    }
+    callStartTime = null;
+    document.getElementById('current-duration').textContent = '-';
+}
+
+function initiateCall(userId, contactName) {
+    if (confirm(`Call ${contactName}?`)) {
+        fetch(`/api/call/${userId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log(`Call initiated to ${contactName}`);
+            } else {
+                alert(`Failed to call ${contactName}: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert(`Failed to call ${contactName}`);
+        });
+    }
+}
+
+function hangUpCall() {
+    if (confirm('Hang up current call?')) {
+        fetch('/api/hangup', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Call hung up');
+            } else {
+                alert(`Failed to hang up: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to hang up call');
+        });
+    }
+}
+</script>
+{% endblock %}

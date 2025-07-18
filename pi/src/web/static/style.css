@@ -1,0 +1,337 @@
+/* EmmaPhone2 Pi Web Interface Custom Styles */
+
+:root {
+    --primary-color: #007bff;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --info-color: #17a2b8;
+    --dark-color: #343a40;
+    --light-color: #f8f9fa;
+}
+
+/* Custom animations */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Status indicators */
+.status-indicator {
+    animation: pulse 2s infinite;
+}
+
+.status-indicator.status-online {
+    animation: pulse 2s infinite;
+}
+
+.status-indicator.status-offline {
+    animation: none;
+}
+
+/* Card animations */
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    animation: fadeIn 0.5s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Speed dial specific styles */
+.speed-dial-card {
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.speed-dial-card:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,123,255,0.25);
+}
+
+.speed-dial-number {
+    background: linear-gradient(135deg, var(--primary-color), var(--info-color));
+    color: white;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 15px;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+/* Call status indicators */
+.call-status-idle {
+    color: var(--info-color);
+}
+
+.call-status-connected {
+    color: var(--success-color);
+    animation: pulse 1.5s infinite;
+}
+
+.call-status-incoming {
+    color: var(--warning-color);
+    animation: pulse 1s infinite;
+}
+
+.call-status-outgoing {
+    color: var(--primary-color);
+    animation: pulse 1s infinite;
+}
+
+/* Navigation improvements */
+.navbar-brand {
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.navbar-nav .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.2s ease;
+}
+
+.navbar-nav .nav-link:hover {
+    color: var(--light-color) !important;
+}
+
+/* Button improvements */
+.btn {
+    transition: all 0.2s ease;
+    border-radius: 8px;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.btn-lg {
+    border-radius: 12px;
+}
+
+/* Form improvements */
+.form-control {
+    border-radius: 8px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+}
+
+/* Alert improvements */
+.alert {
+    border: none;
+    border-radius: 12px;
+    animation: fadeIn 0.3s ease;
+}
+
+/* Modal improvements */
+.modal-content {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.modal-header {
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    border-radius: 15px 15px 0 0;
+}
+
+.modal-footer {
+    border-top: 1px solid rgba(0,0,0,0.1);
+    border-radius: 0 0 15px 15px;
+}
+
+/* Table improvements */
+.table {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table thead th {
+    border-bottom: 2px solid var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-color), var(--info-color));
+    color: white;
+}
+
+/* Progress and loading states */
+.loading {
+    position: relative;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: inherit;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .navbar-brand {
+        font-size: 1.2rem;
+    }
+    
+    .card-icon {
+        font-size: 1.5rem;
+    }
+    
+    .speed-dial-number {
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+    }
+    
+    .btn-lg {
+        padding: 0.75rem 1.5rem;
+    }
+}
+
+/* Connection status in navbar */
+.navbar-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+}
+
+/* Footer styling */
+.footer {
+    background: linear-gradient(135deg, var(--dark-color), #495057);
+    color: white;
+}
+
+/* Custom badge styles */
+.badge {
+    font-size: 0.75rem;
+    border-radius: 6px;
+}
+
+/* Icon sizing consistency */
+.fa-2x {
+    font-size: 2em;
+}
+
+.fa-3x {
+    font-size: 3em;
+}
+
+/* Special effects for status page */
+.status-grid {
+    display: grid;
+    gap: 1rem;
+    animation: fadeIn 0.8s ease;
+}
+
+/* Call timer styling */
+.call-timer {
+    font-family: 'Courier New', monospace;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--success-color);
+    background: rgba(40, 167, 69, 0.1);
+    padding: 8px 16px;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+/* Notification style improvements */
+.notification {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 1060;
+    min-width: 300px;
+    animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Error state styling */
+.error-state {
+    color: var(--danger-color);
+    text-align: center;
+    padding: 2rem;
+}
+
+.error-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* Success state styling */
+.success-state {
+    color: var(--success-color);
+    text-align: center;
+    padding: 2rem;
+}
+
+.success-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+/* Loading spinner */
+.spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Dark mode support (future enhancement) */
+@media (prefers-color-scheme: dark) {
+    .card {
+        background-color: #2d3748;
+        border-color: #4a5568;
+    }
+    
+    .card-header {
+        background-color: #4a5568;
+        border-color: #4a5568;
+        color: white;
+    }
+}

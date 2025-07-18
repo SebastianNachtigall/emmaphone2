@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}Contacts - EmmaPhone2 Pi{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-address-book"></i> Speed Dial Contacts
+            <small class="text-muted">- Manage your speed dial contacts</small>
+        </h1>
+    </div>
+</div>
+
+<!-- Current Contacts -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-tachometer-alt"></i> Current Speed Dial Configuration
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for position in range(1, 5) %}
+                        {% set contact = contacts | selectattr('speed_dial', 'equalto', position) | first %}
+                        <div class="col-md-3 mb-3">
+                            <div class="card speed-dial-position" data-position="{{ position }}">
+                                <div class="card-header text-center bg-light">
+                                    <strong>Position {{ position }}</strong>
+                                </div>
+                                <div class="card-body text-center">
+                                    {% if contact %}
+                                        <h6 class="card-title">{{ contact.name }}</h6>
+                                        <p class="card-text">
+                                            <small class="text-muted">ID: {{ contact.user_id }}</small>
+                                        </p>
+                                        <div class="btn-group-vertical w-100">
+                                            <button class="btn btn-success btn-sm" onclick="testCall('{{ contact.user_id }}', '{{ contact.name }}')">
+                                                <i class="fas fa-phone"></i> Test Call
+                                            </button>
+                                            <button class="btn btn-danger btn-sm" onclick="removeContact('{{ contact.name }}')">
+                                                <i class="fas fa-trash"></i> Remove
+                                            </button>
+                                        </div>
+                                    {% else %}
+                                        <p class="text-muted">
+                                            <i class="fas fa-plus-circle fa-2x mb-2"></i><br>
+                                            Empty Slot
+                                        </p>
+                                        <button class="btn btn-outline-primary btn-sm" onclick="showAddContactModal({{ position }})">
+                                            <i class="fas fa-plus"></i> Add Contact
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Contact Button -->
+<div class="row mb-4">
+    <div class="col-12 text-center">
+        <button class="btn btn-primary btn-lg" onclick="showAddContactModal()">
+            <i class="fas fa-plus"></i> Add New Contact
+        </button>
+    </div>
+</div>
+
+<!-- Instructions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle"></i> How to Use Speed Dial
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Hardware Buttons:</h6>
+                        <ul>
+                            <li><strong>Double Press:</strong> Call Speed Dial Position 1</li>
+                            <li><strong>Triple Press:</strong> Call Speed Dial Position 2</li>
+                            <li><strong>Long Press during call:</strong> Hang up</li>
+                            <li><strong>Short Press during incoming call:</strong> Answer</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Web Interface:</h6>
+                        <ul>
+                            <li>Use this page to manage your contacts</li>
+                            <li>Test calls using the "Test Call" button</li>
+                            <li>Monitor call status on the Dashboard</li>
+                            <li>Add up to 4 speed dial contacts</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Contact Modal -->
+<div class="modal fade" id="addContactModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus"></i> Add Speed Dial Contact
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addContactForm" method="POST" action="{{ url_for('add_contact') }}">
+                    <div class="mb-3">
+                        <label for="contact_name" class="form-label">Contact Name *</label>
+                        <input type="text" class="form-control" id="contact_name" name="name" 
+                               required placeholder="Enter contact name">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="contact_user_id" class="form-label">User ID *</label>
+                        <input type="text" class="form-control" id="contact_user_id" name="user_id" 
+                               required placeholder="Enter user ID (numeric)">
+                        <div class="form-text">
+                            The numeric user ID of the person you want to call
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="contact_position" class="form-label">Speed Dial Position *</label>
+                        <select class="form-select" id="contact_position" name="position" required>
+                            <option value="">Select position...</option>
+                            {% for position in range(1, 5) %}
+                                {% set is_taken = contacts | selectattr('speed_dial', 'equalto', position) | first %}
+                                {% if not is_taken %}
+                                    <option value="{{ position }}">Position {{ position }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <strong>Tip:</strong> You can find user IDs by asking other EmmaPhone2 users, 
+                        or check the user list in the main EmmaPhone2 web application.
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddContact()">
+                    <i class="fas fa-save"></i> Add Contact
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Remove Contact Modal -->
+<div class="modal fade" id="removeContactModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-trash"></i> Remove Contact
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to remove <strong id="remove-contact-name"></strong> from your speed dial?</p>
+                <form id="removeContactForm" method="POST" action="{{ url_for('remove_contact') }}">
+                    <input type="hidden" id="remove_contact_name" name="contact_name">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="submitRemoveContact()">
+                    <i class="fas fa-trash"></i> Remove Contact
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.speed-dial-position {
+    height: 200px;
+    transition: transform 0.2s;
+}
+
+.speed-dial-position:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function showAddContactModal(position = null) {
+    if (position) {
+        document.getElementById('contact_position').value = position;
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('addContactModal'));
+    modal.show();
+}
+
+function submitAddContact() {
+    const form = document.getElementById('addContactForm');
+    
+    // Validate user ID is numeric
+    const userId = document.getElementById('contact_user_id').value;
+    if (!/^\d+$/.test(userId)) {
+        alert('User ID must be numeric');
+        return;
+    }
+    
+    form.submit();
+}
+
+function removeContact(contactName) {
+    document.getElementById('remove-contact-name').textContent = contactName;
+    document.getElementById('remove_contact_name').value = contactName;
+    
+    const modal = new bootstrap.Modal(document.getElementById('removeContactModal'));
+    modal.show();
+}
+
+function submitRemoveContact() {
+    document.getElementById('removeContactForm').submit();
+}
+
+function testCall(userId, contactName) {
+    if (confirm(`Test call to ${contactName}?`)) {
+        fetch(`/api/call/${userId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Test call initiated to ${contactName}!\nCheck the Dashboard for call status.`);
+            } else {
+                alert(`Failed to call ${contactName}: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert(`Failed to call ${contactName}`);
+        });
+    }
+}
+
+// Validate user ID input
+document.getElementById('contact_user_id').addEventListener('input', function(e) {
+    const value = e.target.value;
+    if (value && !/^\d+$/.test(value)) {
+        e.target.classList.add('is-invalid');
+    } else {
+        e.target.classList.remove('is-invalid');
+    }
+});
+</script>
+{% endblock %}
