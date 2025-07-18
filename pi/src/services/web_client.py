@@ -44,7 +44,7 @@ class WebClientAPI:
                 return None
             
             call_data = {
-                "to_user": target_user_id
+                "toUser": target_user_id
             }
             
             url = f"{self.base_url}{self.api_endpoint}/initiate-call"
