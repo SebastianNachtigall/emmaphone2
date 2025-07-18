@@ -5,7 +5,7 @@ class EmmaPhone2 {
     constructor() {
         console.log('📱 EmmaPhone2 constructor');
         // Version check - UPDATED 2025-07-18 20:15 with admin panel
-        console.log('🚀 EmmaPhone2 v2.1.0 - Admin Panel Edition (2025-07-18 20:15)');
+        console.log('🛠️ ADMIN PANEL LIVE - EmmaPhone2 v2.2.0 (2025-07-18 21:30)');
         console.log('🛠️ Admin button should be visible in header next to logout button');
         console.log('🔍 If you don\'t see the admin button, the new version hasn\'t deployed yet');
         
