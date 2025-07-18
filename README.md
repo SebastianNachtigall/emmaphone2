@@ -2,6 +2,18 @@
 
 A web-based WebRTC client designed for kids, featuring large speed dial buttons and simple interface. Built using LiveKit for real-time communication and designed for eventual deployment on Raspberry Pi Zero 2.
 
+## Design Concepts
+
+### Hardware Vision - Design Mockup 1
+![EmmaPhone2 Design Mockup 1](design-mockup1.png)
+*Retro-inspired design with 4 speed dial buttons featuring family photos and a classic phone aesthetic*
+
+### Hardware Vision - Design Mockup 2
+![EmmaPhone2 Design Mockup 2](design-mockup2.jpg)
+*Modern minimalist design with dedicated speed dial buttons, call/hangup controls, and integrated speaker*
+
+These mockups represent the vision for the final EmmaPhone2 hardware device - a kid-friendly calling device that combines the simplicity of traditional phones with modern WebRTC technology.
+
 ## Features
 
 - **Kid-Friendly Interface**: Large, colorful buttons with clear labels
