@@ -321,21 +321,22 @@ class CallManagerV2:
         try:
             logger.info(f"📞 Incoming call from web client: {data}")
             
-            # Extract call information
-            from_user = data.get("from_user", "")
-            room_name = data.get("room_name", "")
-            token = data.get("token", "")
-            call_id = data.get("call_id", "")
+            # Extract call information (mapping server field names to our expected names)
+            from_user = data.get("from", "") or data.get("from_user", "")
+            from_name = data.get("fromName", "") or data.get("from_name", "")
+            room_name = data.get("roomName", "") or data.get("room_name", "")
+            token = data.get("calleeToken", "") or data.get("token", "")
+            call_id = data.get("callLogId", "") or data.get("call_id", "")
             
             if not all([from_user, room_name, token, call_id]):
-                logger.error("❌ Invalid incoming call data")
+                logger.error(f"❌ Invalid incoming call data - missing fields: from_user={from_user}, room_name={room_name}, token={bool(token)}, call_id={call_id}")
                 return
             
             # Create call info
             self.current_call = CallInfo(
                 call_id=call_id,
                 room_name=room_name,
-                caller_name=from_user,
+                caller_name=from_name or from_user,  # Use display name if available, fallback to user ID
                 callee_name=self.pi_user_info["username"] if self.pi_user_info else "",
                 state=CallState.INCOMING,
                 livekit_token=token
@@ -343,6 +344,8 @@ class CallManagerV2:
             
             # Update call state
             await self._set_call_state(CallState.INCOMING)
+            
+            logger.info(f"📞 Incoming call from {from_name or from_user} (ID: {from_user}) ready to answer")
             
         except Exception as e:
             logger.error(f"❌ Failed to handle incoming call: {e}")
