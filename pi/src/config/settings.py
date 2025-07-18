@@ -270,6 +270,43 @@ class Settings:
         """Get user's contacts"""
         return self.get("user.contacts", [])
     
+    def remove_contact(self, contact_name: str = None, user_id: str = None, speed_dial_position: int = None):
+        """Remove contact from user's contact list"""
+        contacts = self.get("user.contacts", [])
+        speed_dial_config = self.get("user.speed_dial", {})
+        
+        # Find contact to remove by name, user_id, or speed_dial position
+        contact_removed = False
+        contacts_to_keep = []
+        
+        for contact in contacts:
+            should_remove = False
+            
+            if contact_name and contact.get("name") == contact_name:
+                should_remove = True
+            elif user_id and contact.get("user_id") == user_id:
+                should_remove = True
+            elif speed_dial_position and contact.get("speed_dial") == speed_dial_position:
+                should_remove = True
+            
+            if should_remove:
+                # Remove from speed dial config if exists
+                if contact.get("speed_dial"):
+                    speed_dial_config.pop(str(contact["speed_dial"]), None)
+                contact_removed = True
+                logger.info(f"📱 Contact removed: {contact.get('name', 'Unknown')}")
+            else:
+                contacts_to_keep.append(contact)
+        
+        if contact_removed:
+            self.set("user.contacts", contacts_to_keep)
+            self.set("user.speed_dial", speed_dial_config)
+            self.save_settings()
+            return True
+        else:
+            logger.warning("📱 Contact not found for removal")
+            return False
+    
     def get_speed_dial(self, position: int) -> Optional[str]:
         """Get speed dial contact for position"""
         speed_dial_config = self.get("user.speed_dial", {})

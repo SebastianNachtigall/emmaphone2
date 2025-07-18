@@ -441,20 +441,30 @@ class PiPhoneCLI:
         print("Current contacts:")
         for i, contact in enumerate(contacts, 1):
             pos = contact.get('speed_dial', 'N/A')
-            print(f"[{i}] {contact['name']} - Position {pos}")
+            name = contact.get('name', 'Unknown')
+            user_id = contact.get('user_id', 'N/A')
+            print(f"[{i}] {name} (ID: {user_id}) - Position {pos}")
         
         try:
             choice = int(input("\nSelect contact to remove (number): ")) - 1
             if 0 <= choice < len(contacts):
                 contact = contacts[choice]
-                # Remove from settings (simplified - in real implementation, 
-                # would need proper contact management in settings)
-                print(f"✅ Removed {contact['name']} from speed dial")
+                contact_name = contact.get('name', 'Unknown')
+                
+                # Actually remove from settings
+                success = self.settings.remove_contact(contact_name=contact_name)
+                
+                if success:
+                    print(f"✅ Removed {contact_name} from speed dial")
+                else:
+                    print(f"❌ Failed to remove {contact_name}")
             else:
                 print("❌ Invalid selection")
                 
         except (ValueError, KeyboardInterrupt):
             print("❌ Operation cancelled")
+        except Exception as e:
+            print(f"❌ Error removing contact: {e}")
         
         input("Press Enter to continue...")
     
