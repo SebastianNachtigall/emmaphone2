@@ -5,7 +5,7 @@ A web-based WebRTC client designed for kids, featuring large speed dial buttons 
 ## Design Concepts
 
 ### Hardware Vision - Design Mockup 1
-![EmmaPhone2 Design Mockup 1](design-mockup1.png)
+![EmmaPhone2 Design Mockup 1](design-mockup1.jpg)
 *Retro-inspired design with 4 speed dial buttons featuring family photos and a classic phone aesthetic*
 
 ### Hardware Vision - Design Mockup 2
