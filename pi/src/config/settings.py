@@ -64,8 +64,17 @@ class Settings:
                 "api_secret": "emmaphone2_static_secret_key_64chars_long_for_proper_security",
                 "room_prefix": "emmaphone"
             },
+            "web_client": {
+                "url": "https://emmaphone2-production.up.railway.app",
+                "api_endpoint": "/api",
+                "socket_endpoint": "/socket.io"
+            },
             "user": {
-                "name": "",
+                "configured": False,
+                "username": "",
+                "display_name": "",
+                "user_id": "",
+                "password": "",
                 "contacts": [],
                 "speed_dial": {}
             },
@@ -181,6 +190,10 @@ class Settings:
         """Get LiveKit configuration"""
         return self.get("livekit", {})
     
+    def get_web_client_config(self) -> Dict:
+        """Get web client configuration"""
+        return self.get("web_client", {})
+    
     def get_user_config(self) -> Dict:
         """Get user configuration"""
         return self.get("user", {})
@@ -189,6 +202,47 @@ class Settings:
         """Set user name"""
         self.set("user.name", name)
         self.save_settings()
+    
+    def set_user_id(self, user_id: str):
+        """Set user ID"""
+        self.set("user.user_id", user_id)
+        self.save_settings()
+    
+    def is_user_configured(self) -> bool:
+        """Check if user is configured"""
+        return self.get("user.configured", False)
+    
+    def configure_user(self, username: str, display_name: str, password: str, user_id: str = ""):
+        """Configure the Pi user"""
+        self.set("user.configured", True)
+        self.set("user.username", username)
+        self.set("user.display_name", display_name)
+        self.set("user.password", password)
+        if user_id:
+            self.set("user.user_id", user_id)
+        self.save_settings()
+        logger.info(f"👤 User configured: {username}")
+    
+    def get_user_credentials(self) -> dict:
+        """Get user credentials"""
+        return {
+            "username": self.get("user.username", ""),
+            "display_name": self.get("user.display_name", ""),
+            "password": self.get("user.password", ""),
+            "user_id": self.get("user.user_id", "")
+        }
+    
+    def clear_user_config(self):
+        """Clear user configuration"""
+        self.set("user.configured", False)
+        self.set("user.username", "")
+        self.set("user.display_name", "")
+        self.set("user.password", "")
+        self.set("user.user_id", "")
+        self.set("user.contacts", [])
+        self.set("user.speed_dial", {})
+        self.save_settings()
+        logger.info("👤 User configuration cleared")
     
     def add_contact(self, name: str, user_id: str, speed_dial: Optional[int] = None):
         """Add contact to user's contact list"""
@@ -232,13 +286,14 @@ class Settings:
     def is_configured(self) -> bool:
         """Check if basic configuration is complete"""
         livekit_config = self.get_livekit_config()
-        user_config = self.get_user_config()
+        web_client_config = self.get_web_client_config()
         
         return (
             livekit_config.get("url") and
             livekit_config.get("api_key") and
             livekit_config.get("api_secret") and
-            user_config.get("name")
+            web_client_config.get("url") and
+            self.is_user_configured()
         )
     
     def reset_to_defaults(self):
