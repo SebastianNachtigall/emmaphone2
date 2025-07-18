@@ -4,6 +4,11 @@ console.log('🎯 Fixed main.js loaded');
 class EmmaPhone2 {
     constructor() {
         console.log('📱 EmmaPhone2 constructor');
+        // Version check - UPDATED 2025-07-18 20:15 with admin panel
+        console.log('🛠️ ADMIN PANEL LIVE - EmmaPhone2 v2.2.0 (2025-07-18 21:30)');
+        console.log('🛠️ Admin button should be visible in header next to logout button');
+        console.log('🔍 If you don\'t see the admin button, the new version hasn\'t deployed yet');
+        
         this.currentUser = null;
         this.authChecked = false;
         this.groups = [];
@@ -37,6 +42,15 @@ class EmmaPhone2 {
         const logoutBtn = document.getElementById('logout-btn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => this.handleLogout());
+        }
+
+        // Admin button
+        const adminBtn = document.getElementById('admin-btn');
+        if (adminBtn) {
+            console.log('✅ Admin button found and event listener added');
+            adminBtn.addEventListener('click', () => this.openAdminPanel());
+        } else {
+            console.log('❌ Admin button NOT found in DOM - check HTML template');
         }
 
         // Friend group buttons
@@ -207,6 +221,11 @@ class EmmaPhone2 {
                 window.location.href = '/login.html';
             }, 2000);
         }
+    }
+
+    openAdminPanel() {
+        console.log('🛠️ Opening admin panel');
+        window.open('/admin', '_blank');
     }
 
     // Contact Management Methods

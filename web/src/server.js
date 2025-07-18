@@ -219,6 +219,15 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Admin panel routes (requires authentication)
+app.get('/admin', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'admin.html'));
+});
+
+app.get('/admin.html', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'admin.html'));
+});
+
 // LiveKit token generation endpoint
 app.post('/api/livekit-token', requireAuth, async (req, res) => {
   try {
@@ -556,103 +565,94 @@ async function generateToken(roomName, participantName) {
   return await at.toJwt();
 }
 
-// Pi device registration and calling endpoints
-app.post('/api/pi/register', async (req, res) => {
+// Admin endpoints for user management
+app.get('/api/admin/users', requireAuth, (req, res) => {
   try {
-    const { device_id, device_name, user_id, capabilities } = req.body;
-    
-    if (!device_id || !device_name || !user_id) {
-      return res.status(400).json({ error: 'device_id, device_name, and user_id are required' });
-    }
-    
-    // Store Pi device registration (in production, this would be in database)
-    const deviceInfo = {
-      device_id,
-      device_name,
-      user_id,
-      capabilities: capabilities || [],
-      registered_at: new Date().toISOString(),
-      last_seen: new Date().toISOString()
+    // Get all users with stats
+    const users = db.getAllUsers();
+    const stats = {
+      total: users.length,
+      active: users.filter(u => u.is_active).length,
+      pi_devices: users.filter(u => u.username.startsWith('pi_') || u.username.toLowerCase().includes('pi')).length
     };
     
-    // For now, store in memory (in production, use database)
-    if (!global.piDevices) {
-      global.piDevices = new Map();
-    }
-    global.piDevices.set(device_id, deviceInfo);
-    
-    console.log('Pi device registered:', deviceInfo);
-    
-    res.json({ 
-      success: true, 
-      device: deviceInfo,
-      message: 'Pi device registered successfully' 
-    });
-    
+    res.json({ users, stats });
   } catch (error) {
-    console.error('Pi registration error:', error);
-    res.status(500).json({ error: 'Failed to register Pi device' });
+    console.error('Error fetching users for admin:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
 
-app.get('/api/pi/devices', requireAuth, (req, res) => {
+app.delete('/api/admin/users/:userId', requireAuth, (req, res) => {
   try {
-    const devices = global.piDevices ? Array.from(global.piDevices.values()) : [];
-    res.json(devices);
+    const userId = parseInt(req.params.userId);
+    
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+    
+    // Don't allow deleting yourself
+    if (userId === req.session.user.id) {
+      return res.status(400).json({ error: 'Cannot delete yourself' });
+    }
+    
+    const success = db.deleteUser(userId);
+    if (success) {
+      console.log(`Admin ${req.session.user.username} deleted user ID ${userId}`);
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'User not found' });
+    }
   } catch (error) {
-    console.error('Error fetching Pi devices:', error);
-    res.status(500).json({ error: 'Failed to fetch Pi devices' });
+    console.error('Error deleting user:', error);
+    res.status(500).json({ error: 'Failed to delete user' });
   }
 });
 
-app.post('/api/pi/call', requireAuth, async (req, res) => {
+app.post('/api/admin/users/:userId/deactivate', requireAuth, (req, res) => {
   try {
-    const { target_device_id, caller_name } = req.body;
+    const userId = parseInt(req.params.userId);
     
-    if (!target_device_id) {
-      return res.status(400).json({ error: 'target_device_id is required' });
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: 'Invalid user ID' });
     }
     
-    // Check if target device exists
-    const targetDevice = global.piDevices?.get(target_device_id);
-    if (!targetDevice) {
-      return res.status(404).json({ error: 'Target Pi device not found' });
+    // Don't allow deactivating yourself
+    if (userId === req.session.user.id) {
+      return res.status(400).json({ error: 'Cannot deactivate yourself' });
     }
     
-    // Generate call room
-    const callId = Math.random().toString(36).substring(2, 15);
-    const roomName = `call_${callId}`;
-    
-    // Create call info
-    const callInfo = {
-      call_id: callId,
-      room_name: roomName,
-      caller: req.session.user.username,
-      caller_name: caller_name || req.session.user.username,
-      target_device: target_device_id,
-      created_at: new Date().toISOString(),
-      status: 'initiated'
-    };
-    
-    // Store call info (in production, use database)
-    if (!global.activeCalls) {
-      global.activeCalls = new Map();
+    const success = db.updateUserStatus(userId, false);
+    if (success) {
+      console.log(`Admin ${req.session.user.username} deactivated user ID ${userId}`);
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'User not found' });
     }
-    global.activeCalls.set(callId, callInfo);
-    
-    console.log('Call initiated to Pi device:', callInfo);
-    
-    // In a real implementation, this would trigger a Socket.IO event to the Pi device
-    // For now, just return the call info
-    res.json({
-      success: true,
-      call: callInfo,
-      message: 'Call initiated to Pi device'
-    });
-    
   } catch (error) {
-    console.error('Pi call error:', error);
-    res.status(500).json({ error: 'Failed to initiate call to Pi device' });
+    console.error('Error deactivating user:', error);
+    res.status(500).json({ error: 'Failed to deactivate user' });
+  }
+});
+
+app.post('/api/admin/users/:userId/activate', requireAuth, (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+    
+    const success = db.updateUserStatus(userId, true);
+    if (success) {
+      console.log(`Admin ${req.session.user.username} activated user ID ${userId}`);
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Error activating user:', error);
+    res.status(500).json({ error: 'Failed to activate user' });
   }
 });
 
