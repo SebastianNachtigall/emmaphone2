@@ -58,16 +58,23 @@ async def debug_session():
             
             # Now test the call initiation with debug
             print(f"\n📞 Testing call initiation with session debug...")
-            call_data = {
-                "toUser": "1"  # Demo user 'emma'
-            }
             
-            url = f"{user_manager.web_api.base_url}/api/initiate-call"
-            
-            async with user_manager.web_api.session.post(url, json=call_data) as response:
-                print(f"Call API Status: {response.status}")
-                result = await response.text()
-                print(f"Call API Response: {result}")
+            # Test both string and number formats
+            for toUser_value in ["1", 1]:
+                print(f"\n🔍 Testing toUser: {toUser_value} (type: {type(toUser_value).__name__})")
+                call_data = {
+                    "toUser": toUser_value
+                }
+                
+                url = f"{user_manager.web_api.base_url}/api/initiate-call"
+                
+                async with user_manager.web_api.session.post(url, json=call_data) as response:
+                    print(f"Call API Status: {response.status}")
+                    result = await response.text()
+                    print(f"Call API Response: {result}")
+                    
+                    if response.status != 404:
+                        break  # Success, stop testing
                 
         else:
             print("❌ User authentication failed")
