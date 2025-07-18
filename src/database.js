@@ -336,6 +336,63 @@ class DatabaseManager {
         return stmt.run(status, endedAt, endedAt, endedAt, callLogId);
     }
 
+    // Admin user management methods
+    getAllUsers() {
+        const stmt = this.db.prepare(`
+            SELECT id, username, display_name, avatar_color, created_at, last_login, is_active
+            FROM users 
+            ORDER BY created_at DESC
+        `);
+        return stmt.all();
+    }
+
+    deleteUser(userId) {
+        try {
+            // Start transaction to delete user and all related data
+            return this.db.transaction(() => {
+                // Delete user's contacts
+                const deleteContacts = this.db.prepare('DELETE FROM contacts WHERE user_id = ? OR contact_user_id = ?');
+                deleteContacts.run(userId, userId);
+                
+                // Delete user's group memberships
+                const deleteGroupMemberships = this.db.prepare('DELETE FROM user_groups WHERE user_id = ?');
+                deleteGroupMemberships.run(userId);
+                
+                // Delete groups created by this user
+                const deleteGroups = this.db.prepare('DELETE FROM friend_groups WHERE created_by = ?');
+                deleteGroups.run(userId);
+                
+                // Update call logs to mark user as deleted (preserve call history)
+                const updateCallLogs = this.db.prepare(`
+                    UPDATE call_logs 
+                    SET caller_id = NULL, callee_id = NULL 
+                    WHERE caller_id = ? OR callee_id = ?
+                `);
+                updateCallLogs.run(userId, userId);
+                
+                // Finally delete the user
+                const deleteUser = this.db.prepare('DELETE FROM users WHERE id = ?');
+                const result = deleteUser.run(userId);
+                
+                return result.changes > 0;
+            })();
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            return false;
+        }
+    }
+
+    updateUserStatus(userId, isActive) {
+        try {
+            const stmt = this.db.prepare('UPDATE users SET is_active = ? WHERE id = ?');
+            const result = stmt.run(isActive ? 1 : 0, userId);
+            return result.changes > 0;
+        } catch (error) {
+            console.error('Error updating user status:', error);
+            return false;
+        }
+    }
+
     close() {
         this.db.close();
     }

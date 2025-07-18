@@ -556,6 +556,97 @@ async function generateToken(roomName, participantName) {
   return await at.toJwt();
 }
 
+// Admin endpoints for user management
+app.get('/api/admin/users', requireAuth, (req, res) => {
+  try {
+    // Get all users with stats
+    const users = db.getAllUsers();
+    const stats = {
+      total: users.length,
+      active: users.filter(u => u.is_active).length,
+      pi_devices: users.filter(u => u.username.startsWith('pi_') || u.username.toLowerCase().includes('pi')).length
+    };
+    
+    res.json({ users, stats });
+  } catch (error) {
+    console.error('Error fetching users for admin:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+app.delete('/api/admin/users/:userId', requireAuth, (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+    
+    // Don't allow deleting yourself
+    if (userId === req.session.user.id) {
+      return res.status(400).json({ error: 'Cannot delete yourself' });
+    }
+    
+    const success = db.deleteUser(userId);
+    if (success) {
+      console.log(`Admin ${req.session.user.username} deleted user ID ${userId}`);
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+app.post('/api/admin/users/:userId/deactivate', requireAuth, (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+    
+    // Don't allow deactivating yourself
+    if (userId === req.session.user.id) {
+      return res.status(400).json({ error: 'Cannot deactivate yourself' });
+    }
+    
+    const success = db.updateUserStatus(userId, false);
+    if (success) {
+      console.log(`Admin ${req.session.user.username} deactivated user ID ${userId}`);
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Error deactivating user:', error);
+    res.status(500).json({ error: 'Failed to deactivate user' });
+  }
+});
+
+app.post('/api/admin/users/:userId/activate', requireAuth, (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+    
+    const success = db.updateUserStatus(userId, true);
+    if (success) {
+      console.log(`Admin ${req.session.user.username} activated user ID ${userId}`);
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Error activating user:', error);
+    res.status(500).json({ error: 'Failed to activate user' });
+  }
+});
+
 // Create HTTP server
 const httpServer = http.createServer(app);
 
