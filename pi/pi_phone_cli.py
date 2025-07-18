@@ -357,14 +357,58 @@ class PiPhoneCLI:
             input("Press Enter to continue...")
             return
         
-        # Get user ID to add
         try:
-            user_id = input("Enter user ID to add: ").strip()
-            if not user_id:
+            # Search for user by name
+            search_term = input("Enter username or display name to search: ").strip()
+            if not search_term:
                 return
             
+            print("🔍 Searching for users...")
+            
+            # Search users via API
+            response = await self.web_api.session.get(
+                f"{self.web_api.base_url}/api/users/search?q={search_term}"
+            )
+            
+            if response.status != 200:
+                print("❌ Failed to search users")
+                input("Press Enter to continue...")
+                return
+            
+            users = await response.json()
+            
+            # Filter out current user
+            users = [u for u in users if u['id'] != self.authenticated_user['user_id']]
+            
+            if not users:
+                print(f"❌ No users found matching '{search_term}'")
+                input("Press Enter to continue...")
+                return
+            
+            # Show search results
+            print(f"\n📋 Found {len(users)} user(s):")
+            for i, user in enumerate(users, 1):
+                print(f"[{i}] {user['display_name']} (@{user['username']}) - ID: {user['id']}")
+            
+            # Let user select
+            choice = input(f"\nSelect user (1-{len(users)}): ").strip()
+            try:
+                user_index = int(choice) - 1
+                if not (0 <= user_index < len(users)):
+                    print("❌ Invalid selection")
+                    input("Press Enter to continue...")
+                    return
+            except ValueError:
+                print("❌ Please enter a number")
+                input("Press Enter to continue...")
+                return
+            
+            selected_user = users[user_index]
+            user_id = str(selected_user['id'])  # Ensure string for consistency
+            display_name = selected_user['display_name']
+            
             # Get position
-            print(f"Available positions: {available_positions}")
+            print(f"\nAvailable positions: {available_positions}")
             position = int(input("Enter speed dial position (1-4): "))
             
             if position not in available_positions:
@@ -372,17 +416,14 @@ class PiPhoneCLI:
                 input("Press Enter to continue...")
                 return
             
-            # Get display name
-            display_name = input("Enter display name: ").strip()
-            if not display_name:
-                display_name = f"User {user_id}"
-            
             # Add contact
             self.settings.add_contact(display_name, user_id, position)
-            print(f"✅ Added {display_name} to speed dial position {position}")
+            print(f"✅ Added {display_name} (ID: {user_id}) to speed dial position {position}")
             
         except (ValueError, KeyboardInterrupt):
             print("❌ Operation cancelled")
+        except Exception as e:
+            print(f"❌ Error: {e}")
         
         input("Press Enter to continue...")
     
@@ -435,6 +476,16 @@ class PiPhoneCLI:
         print(f"\n📞 Calling {display_name} (ID: {user_id})...")
         
         try:
+            # Validate user_id is numeric
+            try:
+                int(user_id)  # Test if it's a valid number
+            except ValueError:
+                print(f"❌ Invalid user ID '{user_id}' - must be numeric")
+                print("💡 This contact may have been added incorrectly")
+                print("💡 Try removing and re-adding this contact")
+                input("\nPress Enter to continue...")
+                return
+            
             result = await self.web_api.initiate_call(user_id)
             
             if result:
