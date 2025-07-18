@@ -219,6 +219,11 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Admin panel route (requires authentication)
+app.get('/admin.html', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'admin.html'));
+});
+
 // LiveKit token generation endpoint
 app.post('/api/livekit-token', requireAuth, async (req, res) => {
   try {
