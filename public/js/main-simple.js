@@ -4,6 +4,11 @@ console.log('🎯 Fixed main.js loaded');
 class EmmaPhone2 {
     constructor() {
         console.log('📱 EmmaPhone2 constructor');
+        // Version check - UPDATED 2025-07-18 20:15 with admin panel
+        console.log('🚀 EmmaPhone2 v2.1.0 - Admin Panel Edition (2025-07-18 20:15)');
+        console.log('🛠️ Admin button should be visible in header next to logout button');
+        console.log('🔍 If you don\'t see the admin button, the new version hasn\'t deployed yet');
+        
         this.currentUser = null;
         this.authChecked = false;
         this.groups = [];
@@ -42,7 +47,10 @@ class EmmaPhone2 {
         // Admin button
         const adminBtn = document.getElementById('admin-btn');
         if (adminBtn) {
+            console.log('✅ Admin button found and event listener added');
             adminBtn.addEventListener('click', () => this.openAdminPanel());
+        } else {
+            console.log('❌ Admin button NOT found in DOM - check HTML template');
         }
 
         // Friend group buttons
