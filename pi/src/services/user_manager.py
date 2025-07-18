@@ -67,7 +67,7 @@ class UserManager:
             url = f"{self.web_api.base_url}{self.web_api.api_endpoint}/auth/register"
             
             async with self.web_api.session.post(url, json=register_data) as response:
-                if response.status == 201:
+                if response.status == 200:
                     result = await response.json()
                     user_data = result.get("user", {})
                     user_id = user_data.get("id")
