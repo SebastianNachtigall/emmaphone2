@@ -39,6 +39,12 @@ class EmmaPhone2 {
             logoutBtn.addEventListener('click', () => this.handleLogout());
         }
 
+        // Admin button
+        const adminBtn = document.getElementById('admin-btn');
+        if (adminBtn) {
+            adminBtn.addEventListener('click', () => this.openAdminPanel());
+        }
+
         // Friend group buttons
         const createGroupBtn = document.getElementById('create-group-btn');
         if (createGroupBtn) {
@@ -207,6 +213,11 @@ class EmmaPhone2 {
                 window.location.href = '/login.html';
             }, 2000);
         }
+    }
+
+    openAdminPanel() {
+        console.log('🛠️ Opening admin panel');
+        window.open('/admin', '_blank');
     }
 
     // Contact Management Methods

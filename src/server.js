@@ -219,7 +219,11 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Admin panel route (requires authentication)
+// Admin panel routes (requires authentication)
+app.get('/admin', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'admin.html'));
+});
+
 app.get('/admin.html', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'admin.html'));
 });
