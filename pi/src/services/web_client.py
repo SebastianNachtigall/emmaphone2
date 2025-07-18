@@ -44,7 +44,7 @@ class WebClientAPI:
                 return None
             
             call_data = {
-                "toUser": target_user_id
+                "toUser": int(target_user_id)  # Ensure integer type for Map lookup
             }
             
             url = f"{self.base_url}{self.api_endpoint}/initiate-call"
