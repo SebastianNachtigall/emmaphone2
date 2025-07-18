@@ -193,11 +193,12 @@ async def show_user_status():
     try:
         await user_manager.initialize()
         
-        status = user_manager.get_setup_status()
+        initial_status = user_manager.get_setup_status()
         
-        print(f"User configured: {'✅' if status['user_configured'] else '❌'}")
+        print(f"User configured: {'✅' if initial_status['user_configured'] else '❌'}")
         
-        if status['user_configured']:
+        auth_successful = False
+        if initial_status['user_configured']:
             creds = user_manager.get_user_credentials()
             print(f"Username: {creds.get('username', 'Unknown')}")
             print(f"Display Name: {creds.get('display_name', 'Unknown')}")
@@ -209,10 +210,13 @@ async def show_user_status():
             
             if auth_result:
                 print("✅ Authentication successful!")
+                auth_successful = True
             else:
                 print("❌ Authentication failed")
         
-        print(f"\nReady for calling: {'✅' if status['ready_for_calling'] else '❌'}")
+        # Check final status after authentication
+        final_status = user_manager.get_setup_status()
+        print(f"\nReady for calling: {'✅' if final_status['ready_for_calling'] else '❌'}")
         
     except Exception as e:
         print(f"❌ Error: {e}")
