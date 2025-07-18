@@ -59,17 +59,18 @@ class UserManager:
             # Register with web client
             register_data = {
                 "username": username,
-                "display_name": display_name,
+                "displayName": display_name,
                 "password": password,
-                "avatar_color": "#FF6B35"  # Orange for Pi users
+                "avatarColor": "#FF6B35"  # Orange for Pi users
             }
             
-            url = f"{self.web_api.base_url}{self.web_api.api_endpoint}/register"
+            url = f"{self.web_api.base_url}{self.web_api.api_endpoint}/auth/register"
             
             async with self.web_api.session.post(url, json=register_data) as response:
-                if response.status == 200:
+                if response.status == 201:
                     result = await response.json()
-                    user_id = result.get("user_id")
+                    user_data = result.get("user", {})
+                    user_id = user_data.get("id")
                     
                     if user_id:
                         # Save user configuration
@@ -119,13 +120,14 @@ class UserManager:
                 "password": password
             }
             
-            url = f"{self.web_api.base_url}{self.web_api.api_endpoint}/login"
+            url = f"{self.web_api.base_url}{self.web_api.api_endpoint}/auth/login"
             
             async with self.web_api.session.post(url, json=login_data) as response:
                 if response.status == 200:
                     result = await response.json()
-                    user_id = result.get("user_id")
-                    display_name = result.get("display_name", username)
+                    user_data = result.get("user", {})
+                    user_id = user_data.get("id")
+                    display_name = user_data.get("displayName", username)
                     
                     if user_id:
                         # Update stored user ID if it changed
