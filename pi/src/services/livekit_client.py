@@ -30,6 +30,9 @@ class LiveKitClient:
         self.local_audio_track = None
         self.remote_audio_track = None
         
+        # Event loop for threading
+        self.main_loop = None
+        
         # Callbacks
         self.on_connected = None
         self.on_disconnected = None
@@ -41,6 +44,12 @@ class LiveKitClient:
         """Initialize the LiveKit client"""
         try:
             self.participant_identity = participant_identity
+            
+            # Store main event loop for threading
+            try:
+                self.main_loop = asyncio.get_running_loop()
+            except RuntimeError:
+                self.main_loop = None
             
             # Create room instance
             self.room = rtc.Room()
@@ -184,11 +193,21 @@ class LiveKitClient:
                                 samples_per_channel=len(audio_pcm) // audio_manager.CHANNELS
                             )
                             
-                            # Send frame to LiveKit (non-blocking)
-                            asyncio.create_task(self.audio_source.capture_frame(frame))
+                            # Send frame to LiveKit using main event loop
+                            if self.main_loop and not self.main_loop.is_closed():
+                                try:
+                                    # Schedule in the main event loop
+                                    asyncio.run_coroutine_threadsafe(
+                                        self.audio_source.capture_frame(frame), self.main_loop
+                                    )
+                                except Exception:
+                                    # Skip frame if scheduling fails
+                                    pass
                             
                 except Exception as e:
-                    logger.error(f"❌ Audio callback error: {e}")
+                    # Don't spam logs for threading issues
+                    if "event loop" not in str(e):
+                        logger.error(f"❌ Audio callback error: {e}")
             
             # Start recording with our callback
             await audio_manager.start_recording(audio_callback)
