@@ -38,6 +38,7 @@ class PiWebServer:
         self.user_manager = None
         self.audio_manager = None
         self.led_controller = None
+        self.main_event_loop = None  # Reference to main event loop
         self.system_status = {
             "wifi_connected": False,
             "user_configured": False,
@@ -55,6 +56,13 @@ class PiWebServer:
         self.user_manager = user_manager
         self.audio_manager = audio_manager
         self.led_controller = led_controller
+        
+        # Store reference to the current event loop
+        try:
+            self.main_event_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            # No event loop running, will handle this in the API calls
+            self.main_event_loop = None
         
     def setup_routes(self):
         """Setup Flask routes"""
@@ -183,8 +191,33 @@ class PiWebServer:
                 if not self.call_manager:
                     return jsonify({"error": "Call manager not available"}), 503
                 
-                # Schedule call in async context
-                asyncio.create_task(self.call_manager.initiate_call(user_id))
+                # Run async call in main event loop if available
+                if self.main_event_loop:
+                    try:
+                        # Schedule coroutine in main event loop
+                        future = asyncio.run_coroutine_threadsafe(
+                            self.call_manager.initiate_call(user_id), 
+                            self.main_event_loop
+                        )
+                        # Don't wait for completion, return immediately
+                    except Exception as e:
+                        logger.error(f"Failed to schedule call: {e}")
+                        return jsonify({"error": f"Failed to schedule call: {e}"}), 500
+                else:
+                    # Fallback: try to run in new event loop
+                    import threading
+                    
+                    def run_async_call():
+                        try:
+                            loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(loop)
+                            loop.run_until_complete(self.call_manager.initiate_call(user_id))
+                            loop.close()
+                        except Exception as e:
+                            logger.error(f"Async call failed: {e}")
+                    
+                    thread = threading.Thread(target=run_async_call, daemon=True)
+                    thread.start()
                 
                 return jsonify({"success": True, "message": f"Call initiated to user {user_id}"})
                 
@@ -199,8 +232,33 @@ class PiWebServer:
                 if not self.call_manager:
                     return jsonify({"error": "Call manager not available"}), 503
                 
-                # Schedule hangup in async context
-                asyncio.create_task(self.call_manager.hang_up())
+                # Run async hangup in main event loop if available
+                if self.main_event_loop:
+                    try:
+                        # Schedule coroutine in main event loop
+                        future = asyncio.run_coroutine_threadsafe(
+                            self.call_manager.hang_up(), 
+                            self.main_event_loop
+                        )
+                        # Don't wait for completion, return immediately
+                    except Exception as e:
+                        logger.error(f"Failed to schedule hangup: {e}")
+                        return jsonify({"error": f"Failed to schedule hangup: {e}"}), 500
+                else:
+                    # Fallback: try to run in new event loop
+                    import threading
+                    
+                    def run_async_hangup():
+                        try:
+                            loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(loop)
+                            loop.run_until_complete(self.call_manager.hang_up())
+                            loop.close()
+                        except Exception as e:
+                            logger.error(f"Async hangup failed: {e}")
+                    
+                    thread = threading.Thread(target=run_async_hangup, daemon=True)
+                    thread.start()
                 
                 return jsonify({"success": True, "message": "Call hung up"})
                 
