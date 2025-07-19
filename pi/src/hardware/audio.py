@@ -354,6 +354,59 @@ class AudioManager:
         
         return devices
     
+    async def start_recording_to_file(self, filename: str) -> bool:
+        """Start continuous recording to file for call recording"""
+        try:
+            if self.recording:
+                logger.warning("⚠️ Already recording, stopping current recording first")
+                await self.stop_recording()
+            
+            self.recording_frames = []
+            self.recording_filename = filename
+            
+            def file_record_callback(audio_data):
+                """Callback to collect audio data for file recording"""
+                self.recording_frames.append(audio_data.tobytes())
+            
+            await self.start_recording(file_record_callback)
+            logger.info(f"📹 Started recording to file: {filename}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to start recording to file: {e}")
+            return False
+    
+    async def stop_recording_to_file(self) -> bool:
+        """Stop continuous recording and save to file"""
+        try:
+            if not self.recording or not hasattr(self, 'recording_frames'):
+                logger.warning("⚠️ No active file recording to stop")
+                return False
+            
+            await self.stop_recording()
+            
+            if hasattr(self, 'recording_frames') and self.recording_frames:
+                # Save recorded data to file
+                with wave.open(self.recording_filename, 'wb') as wf:
+                    wf.setnchannels(self.CHANNELS)
+                    wf.setsampwidth(self.pyaudio_instance.get_sample_size(self.FORMAT))
+                    wf.setframerate(self.SAMPLE_RATE)
+                    wf.writeframes(b''.join(self.recording_frames))
+                
+                logger.info(f"📹 Recording saved to: {self.recording_filename}")
+                
+                # Cleanup
+                delattr(self, 'recording_frames')
+                delattr(self, 'recording_filename')
+                return True
+            else:
+                logger.warning("⚠️ No audio data recorded to file")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to stop recording to file: {e}")
+            return False
+
     async def stop(self):
         """Stop all audio operations and cleanup"""
         await self.stop_recording()
