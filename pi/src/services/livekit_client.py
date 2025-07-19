@@ -113,18 +113,30 @@ class LiveKitClient:
         except Exception as e:
             logger.error(f"❌ Failed to leave room: {e}")
     
-    async def publish_audio_track(self, audio_source):
+    async def publish_audio_track(self, audio_manager):
         """Publish audio track to the room"""
         try:
             if not self.room or not self.connected:
                 raise Exception("Not connected to room")
             
+            logger.info("🎤 Creating LiveKit audio source...")
+            
+            # Create audio source compatible with LiveKit
+            from livekit import rtc
+            
+            # Create audio source with Pi's audio configuration
+            self.audio_source = rtc.AudioSource(
+                sample_rate=audio_manager.SAMPLE_RATE,
+                num_channels=audio_manager.CHANNELS
+            )
+            
             # Create audio track from source
-            self.audio_source = audio_source
             self.local_audio_track = rtc.LocalAudioTrack.create_audio_track(
                 "microphone",
-                audio_source
+                self.audio_source
             )
+            
+            logger.info("🎤 Created LiveKit audio track")
             
             # Publish the track
             options = rtc.TrackPublishOptions()
@@ -135,11 +147,52 @@ class LiveKitClient:
                 options
             )
             
-            logger.info("🎤 Audio track published")
+            logger.info("🎤 Audio track published to LiveKit room")
+            
+            # Start feeding audio data to LiveKit
+            await self._start_audio_capture(audio_manager)
+            
             return publication
             
         except Exception as e:
             logger.error(f"❌ Failed to publish audio track: {e}")
+            raise
+    
+    async def _start_audio_capture(self, audio_manager):
+        """Start capturing audio from Pi and feeding to LiveKit"""
+        try:
+            logger.info("🎤 Starting audio capture for LiveKit...")
+            
+            def audio_callback(audio_data):
+                """Callback to send audio data to LiveKit"""
+                try:
+                    if self.audio_source and len(audio_data) > 0:
+                        # Convert numpy array to the format LiveKit expects
+                        import numpy as np
+                        if isinstance(audio_data, np.ndarray):
+                            # Convert to int16 PCM data
+                            audio_pcm = audio_data.astype(np.int16)
+                            
+                            # Create AudioFrame and send to LiveKit
+                            frame = rtc.AudioFrame(
+                                data=audio_pcm.tobytes(),
+                                sample_rate=audio_manager.SAMPLE_RATE,
+                                num_channels=audio_manager.CHANNELS,
+                                samples_per_channel=len(audio_pcm) // audio_manager.CHANNELS
+                            )
+                            
+                            # Send frame to LiveKit (non-blocking)
+                            asyncio.create_task(self.audio_source.capture_frame(frame))
+                            
+                except Exception as e:
+                    logger.error(f"❌ Audio callback error: {e}")
+            
+            # Start recording with our callback
+            await audio_manager.start_recording(audio_callback)
+            logger.info("🎤 Audio capture started for LiveKit")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to start audio capture: {e}")
             raise
     
     async def unpublish_audio_track(self):

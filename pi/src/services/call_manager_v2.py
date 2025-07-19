@@ -390,8 +390,12 @@ class CallManagerV2:
         # Start audio publishing
         async def start_audio():
             try:
+                logger.info("🔗 LiveKit connected - starting audio publishing")
                 await self.livekit_client.publish_audio_track(self.audio_manager)
+                logger.info("🎤 Audio track published to LiveKit")
+                
                 await self.audio_manager.start_recording()
+                logger.info("🎤 Audio recording started for LiveKit")
                 
                 # Start call recording if enabled
                 if self.call_recording_enabled and self.current_call:
