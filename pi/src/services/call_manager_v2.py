@@ -174,6 +174,15 @@ class CallManagerV2:
             success = await self.livekit_client.join_room(room_name, livekit_token)
             if success:
                 await self._set_call_state(CallState.CONNECTED)
+                
+                # Start call recording immediately after successful room join
+                if self.call_recording_enabled and self.current_call:
+                    logger.info("📹 Attempting to start call recording after room join")
+                    try:
+                        await self.start_call_recording()
+                    except Exception as e:
+                        logger.error(f"❌ Failed to start call recording: {e}")
+                
                 logger.info(f"📞 Call initiated to user {target_user_id}")
                 return True
             else:
