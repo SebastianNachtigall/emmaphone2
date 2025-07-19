@@ -144,9 +144,11 @@ class CallManagerV2:
                 await self._set_call_state(CallState.ERROR)
                 return False
             
-            # Extract call information
-            room_name = call_result.get("room_name", "")
-            livekit_token = call_result.get("token", "")
+            logger.info(f"📞 Call result from web API: {call_result}")
+            
+            # Extract call information (mapping server field names)
+            room_name = call_result.get("roomName", "") or call_result.get("room_name", "")
+            livekit_token = call_result.get("callerToken", "") or call_result.get("token", "")
             
             if not room_name or not livekit_token:
                 logger.error("❌ Invalid call response from web client")
@@ -155,7 +157,7 @@ class CallManagerV2:
             
             # Create call info
             self.current_call = CallInfo(
-                call_id=call_result.get("call_id", ""),
+                call_id=call_result.get("callLogId", "") or call_result.get("call_id", ""),
                 room_name=room_name,
                 caller_name=self.pi_user_info["username"],
                 callee_name=target_user_id,
