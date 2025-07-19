@@ -229,6 +229,14 @@
                         <td><span class="badge bg-success" id="audio-status">Ready</span></td>
                     </tr>
                     <tr>
+                        <td><strong>Recording:</strong></td>
+                        <td><span class="badge bg-secondary" id="recording-status">Idle</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Playback:</strong></td>
+                        <td><span class="badge bg-secondary" id="playback-status">Idle</span></td>
+                    </tr>
+                    <tr>
                         <td><strong>LED Controller:</strong></td>
                         <td><span class="badge bg-success" id="led-status">Active</span></td>
                     </tr>
@@ -237,6 +245,60 @@
                         <td><span class="badge bg-success" id="button-status">Ready</span></td>
                     </tr>
                 </table>
+                
+                <div class="mt-3">
+                    <button class="btn btn-outline-primary btn-sm" onclick="testAudioRecording()">
+                        <i class="fas fa-microphone"></i> Test Recording
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Audio Monitoring -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-volume-up"></i> Audio Monitoring
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Input Level</label>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-success" id="audio-level-bar" role="progressbar" 
+                             style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                            <span id="audio-level-text">0%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <small class="text-muted">Sample Rate:</small><br>
+                        <strong>44.1 kHz</strong>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted">Channels:</small><br>
+                        <strong>Stereo (2)</strong>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-outline-success btn-sm" onclick="startAudioMonitoring()">
+                            <i class="fas fa-play"></i> Monitor
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="stopAudioMonitoring()">
+                            <i class="fas fa-stop"></i> Stop
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mt-2">
+                    <small class="text-muted" id="audio-monitor-status">Click Monitor to start audio level monitoring</small>
+                </div>
             </div>
         </div>
     </div>
@@ -288,6 +350,8 @@
 
 {% block extra_scripts %}
 <script>
+let audioMonitoringInterval = null;
+
 // Handle status updates
 window.addEventListener('statusUpdate', function(event) {
     const status = event.detail;
@@ -331,6 +395,107 @@ function updateStatusDisplay(status) {
     }
     
     lastCallUpdate.textContent = lastUpdate.toLocaleString();
+}
+
+function testAudioRecording() {
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+    btn.disabled = true;
+    
+    fetch('/api/audio/test', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`✅ Audio test successful!\nRecorded ${data.data_length} bytes of audio data.`);
+        } else {
+            alert(`❌ Audio test failed: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        console.error('Audio test error:', error);
+        alert('❌ Audio test failed: Network error');
+    })
+    .finally(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
+}
+
+function startAudioMonitoring() {
+    if (audioMonitoringInterval) {
+        clearInterval(audioMonitoringInterval);
+    }
+    
+    document.getElementById('audio-monitor-status').textContent = 'Monitoring audio levels...';
+    
+    // Update audio levels every 500ms
+    audioMonitoringInterval = setInterval(() => {
+        fetch('/api/audio/level')
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('audio-monitor-status').textContent = `Error: ${data.error}`;
+                    return;
+                }
+                
+                // Update audio level bar
+                const level = Math.round(data.level * 100);
+                const levelBar = document.getElementById('audio-level-bar');
+                const levelText = document.getElementById('audio-level-text');
+                
+                levelBar.style.width = `${level}%`;
+                levelBar.setAttribute('aria-valuenow', level);
+                levelText.textContent = `${level}%`;
+                
+                // Change color based on level
+                levelBar.className = 'progress-bar';
+                if (level > 70) {
+                    levelBar.classList.add('bg-danger');
+                } else if (level > 30) {
+                    levelBar.classList.add('bg-warning');
+                } else {
+                    levelBar.classList.add('bg-success');
+                }
+                
+                // Update recording/playback status
+                const recordingStatus = document.getElementById('recording-status');
+                const playbackStatus = document.getElementById('playback-status');
+                
+                recordingStatus.textContent = data.recording ? 'Active' : 'Idle';
+                recordingStatus.className = data.recording ? 'badge bg-success' : 'badge bg-secondary';
+                
+                playbackStatus.textContent = data.playing ? 'Active' : 'Idle';
+                playbackStatus.className = data.playing ? 'badge bg-success' : 'badge bg-secondary';
+                
+                document.getElementById('audio-monitor-status').textContent = 
+                    `Level: ${level}% | Recording: ${data.recording ? 'Yes' : 'No'} | Playing: ${data.playing ? 'Yes' : 'No'}`;
+            })
+            .catch(error => {
+                console.error('Audio level error:', error);
+                document.getElementById('audio-monitor-status').textContent = 'Error fetching audio levels';
+            });
+    }, 500);
+}
+
+function stopAudioMonitoring() {
+    if (audioMonitoringInterval) {
+        clearInterval(audioMonitoringInterval);
+        audioMonitoringInterval = null;
+    }
+    
+    document.getElementById('audio-monitor-status').textContent = 'Audio monitoring stopped';
+    
+    // Reset level bar
+    const levelBar = document.getElementById('audio-level-bar');
+    const levelText = document.getElementById('audio-level-text');
+    levelBar.style.width = '0%';
+    levelText.textContent = '0%';
 }
 
 function refreshStatus() {

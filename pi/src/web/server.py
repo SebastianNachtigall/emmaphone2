@@ -184,6 +184,67 @@ class PiWebServer:
             """API endpoint for system status"""
             return jsonify(self.get_system_status())
         
+        @self.app.route('/api/audio/test', methods=['POST'])
+        def api_audio_test():
+            """API endpoint to test audio recording"""
+            try:
+                if not self.audio_manager:
+                    return jsonify({"error": "Audio manager not available"}), 503
+                
+                # Run audio test in thread-safe way
+                import threading
+                
+                test_result = {"success": False, "error": None}
+                
+                def run_audio_test():
+                    try:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        
+                        # Test audio recording for 2 seconds
+                        audio_data = loop.run_until_complete(
+                            self.audio_manager.record_audio(duration=2.0)
+                        )
+                        
+                        if audio_data:
+                            test_result["success"] = True
+                            test_result["data_length"] = len(audio_data)
+                        else:
+                            test_result["error"] = "No audio data recorded"
+                        
+                        loop.close()
+                    except Exception as e:
+                        test_result["error"] = str(e)
+                
+                thread = threading.Thread(target=run_audio_test, daemon=True)
+                thread.start()
+                thread.join(timeout=5)  # Wait max 5 seconds
+                
+                return jsonify(test_result)
+                
+            except Exception as e:
+                logger.error(f"Failed to test audio: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/audio/level')
+        def api_audio_level():
+            """API endpoint to get current audio input level"""
+            try:
+                if not self.audio_manager:
+                    return jsonify({"error": "Audio manager not available"}), 503
+                
+                # This would need to be called from the main event loop
+                # For now, return a placeholder
+                return jsonify({
+                    "level": 0.0,
+                    "recording": getattr(self.audio_manager, 'recording', False),
+                    "playing": getattr(self.audio_manager, 'playing', False)
+                })
+                
+            except Exception as e:
+                logger.error(f"Failed to get audio level: {e}")
+                return jsonify({"error": str(e)}), 500
+        
         @self.app.route('/api/call/<user_id>', methods=['POST'])
         def api_call(user_id):
             """API endpoint to initiate call"""

@@ -76,6 +76,12 @@
                     <span id="audio-status-text">Ready</span><br>
                     <small class="text-muted">ReSpeaker HAT</small>
                 </p>
+                <div class="progress" style="height: 8px; margin-top: 8px;">
+                    <div class="progress-bar bg-success" id="dashboard-audio-level" 
+                         style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                    </div>
+                </div>
+                <small class="text-muted" id="dashboard-audio-text">Level: 0%</small>
             </div>
         </div>
     </div>
@@ -279,7 +285,58 @@ function updateDashboard(status) {
         webClientStatus.textContent = 'Web Client: Disconnected';
         webClientStatus.className = 'text-danger';
     }
+    
+    // Update audio levels if monitoring is active
+    updateDashboardAudioLevel();
 }
+
+function updateDashboardAudioLevel() {
+    // Fetch current audio level for dashboard
+    fetch('/api/audio/level')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.error) {
+                const level = Math.round(data.level * 100);
+                const levelBar = document.getElementById('dashboard-audio-level');
+                const levelText = document.getElementById('dashboard-audio-text');
+                
+                if (levelBar && levelText) {
+                    levelBar.style.width = `${level}%`;
+                    levelText.textContent = `Level: ${level}%`;
+                    
+                    // Update color based on level
+                    levelBar.className = 'progress-bar';
+                    if (level > 70) {
+                        levelBar.classList.add('bg-danger');
+                    } else if (level > 30) {
+                        levelBar.classList.add('bg-warning');
+                    } else {
+                        levelBar.classList.add('bg-success');
+                    }
+                }
+                
+                // Update audio status text
+                const audioStatusText = document.getElementById('audio-status-text');
+                if (audioStatusText) {
+                    if (data.recording && data.playing) {
+                        audioStatusText.textContent = 'Recording & Playing';
+                    } else if (data.recording) {
+                        audioStatusText.textContent = 'Recording';
+                    } else if (data.playing) {
+                        audioStatusText.textContent = 'Playing';
+                    } else {
+                        audioStatusText.textContent = 'Ready';
+                    }
+                }
+            }
+        })
+        .catch(error => {
+            // Silent fail for dashboard - don't spam console
+        });
+}
+
+// Start periodic audio level updates on dashboard
+setInterval(updateDashboardAudioLevel, 2000); // Update every 2 seconds
 
 function startDurationTimer() {
     if (durationInterval) clearInterval(durationInterval);
