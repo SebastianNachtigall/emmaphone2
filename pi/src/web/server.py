@@ -233,16 +233,115 @@ class PiWebServer:
                 if not self.audio_manager:
                     return jsonify({"error": "Audio manager not available"}), 503
                 
-                # This would need to be called from the main event loop
-                # For now, return a placeholder
+                # Get actual audio level if recording is active
+                level = 0.0
+                if hasattr(self.audio_manager, 'recording') and self.audio_manager.recording:
+                    # Try to get real-time level
+                    try:
+                        if self.main_event_loop:
+                            # Schedule in main loop but don't wait
+                            future = asyncio.run_coroutine_threadsafe(
+                                self.audio_manager.get_audio_level(), 
+                                self.main_event_loop
+                            )
+                            level = future.result(timeout=0.1)  # Quick timeout
+                    except:
+                        level = 0.0
+                
                 return jsonify({
-                    "level": 0.0,
+                    "level": level,
                     "recording": getattr(self.audio_manager, 'recording', False),
                     "playing": getattr(self.audio_manager, 'playing', False)
                 })
                 
             except Exception as e:
                 logger.error(f"Failed to get audio level: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/audio/record', methods=['POST'])
+        def api_start_recording():
+            """API endpoint to start call recording"""
+            try:
+                if not self.call_manager:
+                    return jsonify({"error": "Call manager not available"}), 503
+                
+                # Enable call recording first
+                if hasattr(self.call_manager, 'enable_call_recording'):
+                    recording_enabled = self.call_manager.enable_call_recording()
+                    if not recording_enabled:
+                        return jsonify({"error": "Failed to enable call recording"}), 500
+                    
+                    # If there's an active call, start recording immediately
+                    if (self.call_manager.get_call_state().value == 'connected' and 
+                        hasattr(self.call_manager, 'start_call_recording')):
+                        
+                        if self.main_event_loop:
+                            # Schedule in main event loop
+                            future = asyncio.run_coroutine_threadsafe(
+                                self.call_manager.start_call_recording(),
+                                self.main_event_loop
+                            )
+                            try:
+                                recording_started = future.result(timeout=2.0)
+                                if recording_started:
+                                    recording_file = self.call_manager.get_call_recording_file()
+                                    return jsonify({
+                                        "success": True, 
+                                        "message": "Call recording started",
+                                        "recording_file": recording_file
+                                    })
+                                else:
+                                    return jsonify({"error": "Failed to start recording - check audio hardware"})
+                            except Exception as e:
+                                return jsonify({"error": f"Recording failed: {e}"})
+                        else:
+                            return jsonify({"error": "No event loop available"})
+                    else:
+                        return jsonify({
+                            "success": True, 
+                            "message": "Call recording enabled. Recording will start with next call.",
+                            "recording_file": self.call_manager.get_call_recording_file()
+                        })
+                else:
+                    return jsonify({"error": "Call recording not supported"}), 501
+                
+            except Exception as e:
+                logger.error(f"Failed to start recording: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/audio/devices')
+        def api_audio_devices():
+            """API endpoint to get audio device information"""
+            try:
+                if not self.audio_manager:
+                    return jsonify({"error": "Audio manager not available"}), 503
+                
+                # Run device detection in thread-safe way
+                import threading
+                
+                device_result = {"devices": [], "error": None}
+                
+                def get_devices():
+                    try:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        
+                        devices = loop.run_until_complete(
+                            self.audio_manager.get_device_info()
+                        )
+                        device_result["devices"] = devices
+                        loop.close()
+                    except Exception as e:
+                        device_result["error"] = str(e)
+                
+                thread = threading.Thread(target=get_devices, daemon=True)
+                thread.start()
+                thread.join(timeout=3)  # Wait max 3 seconds
+                
+                return jsonify(device_result)
+                
+            except Exception as e:
+                logger.error(f"Failed to get audio devices: {e}")
                 return jsonify({"error": str(e)}), 500
         
         @self.app.route('/api/call/<user_id>', methods=['POST'])

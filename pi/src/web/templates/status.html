@@ -294,6 +294,17 @@
                             <i class="fas fa-stop"></i> Stop
                         </button>
                     </div>
+                    <div class="btn-group ms-2" role="group">
+                        <button class="btn btn-outline-info btn-sm" onclick="showAudioDevices()">
+                            <i class="fas fa-list"></i> Devices
+                        </button>
+                        <button class="btn btn-outline-warning btn-sm" onclick="forceStartRecording()">
+                            <i class="fas fa-microphone"></i> Force Record
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm" onclick="enableCallRecording()">
+                            <i class="fas fa-video"></i> Record Calls
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="mt-2">
@@ -539,6 +550,96 @@ function testCall(userId, contactName) {
 function downloadLogs() {
     // This would need a backend endpoint to serve logs
     alert('Log download feature would be implemented here');
+}
+
+function showAudioDevices() {
+    fetch('/api/audio/devices')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(`❌ Failed to get audio devices: ${data.error}`);
+                return;
+            }
+            
+            let deviceList = '🎤 Available Audio Devices:\n\n';
+            data.devices.forEach((device, index) => {
+                deviceList += `Device ${device.index}: ${device.name}\n`;
+                deviceList += `  - Input channels: ${device.max_input_channels}\n`;
+                deviceList += `  - Output channels: ${device.max_output_channels}\n`;
+                deviceList += `  - Sample rate: ${device.default_sample_rate} Hz\n\n`;
+            });
+            
+            if (data.devices.length === 0) {
+                deviceList += 'No audio devices found!';
+            }
+            
+            alert(deviceList);
+        })
+        .catch(error => {
+            alert(`❌ Error getting audio devices: ${error}`);
+        });
+}
+
+function forceStartRecording() {
+    if (confirm('Force start audio recording? This will test if the microphone hardware is working.')) {
+        fetch('/api/audio/test', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                duration: 5,
+                force: true
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`✅ Force recording successful!\n\nRecorded ${data.data_length} bytes of audio data.\n\nThis means your microphone hardware is working. The issue might be with:\n- Audio device index configuration\n- PyAudio device selection\n- LiveKit audio publishing\n\nCheck the Pi logs for more details.`);
+            } else {
+                alert(`❌ Force recording failed: ${data.error}\n\nThis indicates a hardware or driver issue:\n- Check if ReSpeaker HAT is properly connected\n- Verify ALSA audio drivers are installed\n- Check PyAudio configuration\n- Run 'arecord -l' to see available devices`);
+            }
+        })
+        .catch(error => {
+            alert(`❌ Force recording error: ${error}`);
+        });
+    }
+}
+
+function enableCallRecording() {
+    if (confirm('Enable call recording for debugging? This will record future calls to /tmp/ for analysis.')) {
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enabling...';
+        btn.disabled = true;
+        
+        fetch('/api/audio/record', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                let message = `✅ ${data.message}`;
+                if (data.recording_file) {
+                    message += `\n\nRecording file: ${data.recording_file}`;
+                    message += `\n\nTo listen to the recording later, use:\nscp pi@your-pi-ip:${data.recording_file} ./call_recording.wav`;
+                }
+                alert(message);
+            } else {
+                alert(`❌ Failed to enable call recording: ${data.error}`);
+            }
+        })
+        .catch(error => {
+            alert(`❌ Call recording error: ${error}`);
+        })
+        .finally(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+    }
 }
 
 // Test API connectivity on page load

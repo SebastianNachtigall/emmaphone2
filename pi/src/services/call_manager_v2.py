@@ -70,6 +70,10 @@ class CallManagerV2:
         self.call_state = CallState.IDLE
         self.pi_user_info: Optional[Dict] = None
         
+        # Call recording
+        self.call_recording_enabled = False
+        self.call_recording_filename = None
+        
         # Callbacks
         self.on_call_state_changed = None
         self.on_call_started = None
@@ -374,6 +378,10 @@ class CallManagerV2:
                 await self.livekit_client.publish_audio_track(self.audio_manager)
                 await self.audio_manager.start_recording()
                 
+                # Start call recording if enabled
+                if self.call_recording_enabled and self.current_call:
+                    await self.start_call_recording()
+                
             except Exception as e:
                 logger.error(f"❌ Failed to start audio: {e}")
         
@@ -383,10 +391,16 @@ class CallManagerV2:
         """Handle LiveKit disconnection"""
         logger.info("🔌 LiveKit disconnected")
         
-        # Stop audio
+        # Stop audio and call recording
         async def stop_audio():
             await self.audio_manager.stop_recording()
             await self.audio_manager.stop_playback()
+            
+            # Stop call recording if active
+            if self.call_recording_enabled:
+                recording_file = await self.stop_call_recording()
+                if recording_file:
+                    logger.info(f"📹 Call recording saved: {recording_file}")
         
         asyncio.create_task(stop_audio())
     
@@ -458,6 +472,77 @@ class CallManagerV2:
     async def get_contacts(self) -> Optional[list]:
         """Get contacts from web client"""
         return await self.web_api.get_user_contacts()
+    
+    def enable_call_recording(self) -> bool:
+        """Enable call recording for debugging"""
+        try:
+            import datetime
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            self.call_recording_filename = f"/tmp/call_recording_{timestamp}.wav"
+            self.call_recording_enabled = True
+            logger.info(f"📹 Call recording enabled: {self.call_recording_filename}")
+            return True
+        except Exception as e:
+            logger.error(f"❌ Failed to enable call recording: {e}")
+            return False
+    
+    def disable_call_recording(self):
+        """Disable call recording"""
+        self.call_recording_enabled = False
+        self.call_recording_filename = None
+        logger.info("📹 Call recording disabled")
+    
+    def get_call_recording_file(self) -> Optional[str]:
+        """Get the current call recording filename"""
+        return self.call_recording_filename if self.call_recording_enabled else None
+    
+    async def start_call_recording(self) -> bool:
+        """Start recording the current call for debugging"""
+        try:
+            if not self.call_recording_enabled:
+                logger.warning("⚠️ Call recording not enabled")
+                return False
+            
+            if not self.current_call or self.call_state != CallState.CONNECTED:
+                logger.warning("⚠️ No active call to record")
+                return False
+            
+            # Start recording through audio manager
+            if hasattr(self.audio_manager, 'start_recording_to_file'):
+                success = await self.audio_manager.start_recording_to_file(self.call_recording_filename)
+                if success:
+                    logger.info(f"📹 Call recording started: {self.call_recording_filename}")
+                    return True
+                else:
+                    logger.error("❌ Failed to start call recording")
+                    return False
+            else:
+                logger.warning("⚠️ Audio manager doesn't support file recording")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to start call recording: {e}")
+            return False
+    
+    async def stop_call_recording(self) -> Optional[str]:
+        """Stop call recording and return filename"""
+        try:
+            if not self.call_recording_enabled or not self.call_recording_filename:
+                return None
+            
+            # Stop recording through audio manager
+            if hasattr(self.audio_manager, 'stop_recording_to_file'):
+                await self.audio_manager.stop_recording_to_file()
+            
+            recording_file = self.call_recording_filename
+            self.disable_call_recording()
+            
+            logger.info(f"📹 Call recording stopped: {recording_file}")
+            return recording_file
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to stop call recording: {e}")
+            return None
     
     async def stop(self):
         """Stop call manager and cleanup"""
