@@ -21,8 +21,8 @@ class AudioManager:
     CHANNELS = 2  # Stereo from dual microphones
     FORMAT = pyaudio.paInt16
     
-    # Device configuration (usually hw:1,0 for ReSpeaker HAT)
-    DEVICE_INDEX = 1  # Card 1 (seeed2micvoicec)
+    # Device configuration (auto-detect ReSpeaker HAT)
+    DEVICE_INDEX = None  # Will be auto-detected
     
     def __init__(self):
         self.pyaudio_instance = None
@@ -42,6 +42,9 @@ class AudioManager:
             
             self.pyaudio_instance = pyaudio.PyAudio()
             
+            # Auto-detect ReSpeaker device
+            await self._detect_audio_device()
+            
             # List available devices
             await self._list_audio_devices()
             
@@ -50,6 +53,45 @@ class AudioManager:
         except Exception as e:
             logger.error(f"❌ Failed to initialize audio manager: {e}")
             raise
+    
+    async def _detect_audio_device(self):
+        """Auto-detect ReSpeaker HAT or best available input device"""
+        try:
+            info = self.pyaudio_instance.get_host_api_info_by_index(0)
+            device_count = info.get('deviceCount')
+            
+            # Look for ReSpeaker devices first
+            respeaker_devices = []
+            input_devices = []
+            
+            for i in range(device_count):
+                device_info = self.pyaudio_instance.get_device_info_by_host_api_device_index(0, i)
+                device_name = device_info.get('name', '').lower()
+                max_inputs = device_info.get('maxInputChannels', 0)
+                
+                if max_inputs > 0:
+                    input_devices.append((i, device_name, max_inputs))
+                    
+                    # Check for ReSpeaker patterns
+                    if any(pattern in device_name for pattern in ['respeaker', 'seeed', '2mic']):
+                        respeaker_devices.append((i, device_name, max_inputs))
+            
+            # Prefer ReSpeaker devices
+            if respeaker_devices:
+                self.DEVICE_INDEX = respeaker_devices[0][0]
+                logger.info(f"🎤 Detected ReSpeaker device: {respeaker_devices[0][1]} (index {self.DEVICE_INDEX})")
+            elif input_devices:
+                # Fall back to first available input device
+                self.DEVICE_INDEX = input_devices[0][0]
+                logger.info(f"🎤 Using input device: {input_devices[0][1]} (index {self.DEVICE_INDEX})")
+            else:
+                # Default fallback
+                self.DEVICE_INDEX = 1
+                logger.warning(f"⚠️ No input devices found, using default index {self.DEVICE_INDEX}")
+                
+        except Exception as e:
+            logger.error(f"❌ Device detection failed: {e}")
+            self.DEVICE_INDEX = 1  # Fallback
     
     async def _list_audio_devices(self):
         """List available audio devices for debugging"""
@@ -354,6 +396,30 @@ class AudioManager:
         
         return devices
     
+    def set_device_index(self, device_index: int):
+        """Manually set the audio device index"""
+        old_index = self.DEVICE_INDEX
+        self.DEVICE_INDEX = device_index
+        logger.info(f"🎤 Audio device changed from {old_index} to {device_index}")
+    
+    def get_current_device_info(self) -> dict:
+        """Get information about currently selected device"""
+        if not self.pyaudio_instance or self.DEVICE_INDEX is None:
+            return {}
+        
+        try:
+            device_info = self.pyaudio_instance.get_device_info_by_host_api_device_index(0, self.DEVICE_INDEX)
+            return {
+                'index': self.DEVICE_INDEX,
+                'name': device_info.get('name', 'Unknown'),
+                'max_input_channels': device_info.get('maxInputChannels', 0),
+                'max_output_channels': device_info.get('maxOutputChannels', 0),
+                'default_sample_rate': device_info.get('defaultSampleRate', 0)
+            }
+        except Exception as e:
+            logger.error(f"❌ Error getting current device info: {e}")
+            return {}
+    
     async def start_recording_to_file(self, filename: str) -> bool:
         """Start continuous recording to file for call recording"""
         try:
@@ -361,15 +427,21 @@ class AudioManager:
                 logger.warning("⚠️ Already recording, stopping current recording first")
                 await self.stop_recording()
             
+            # Initialize recording state
             self.recording_frames = []
             self.recording_filename = filename
+            
+            logger.info(f"📹 Starting file recording to: {filename}")
+            logger.info(f"🎤 Using device index: {self.DEVICE_INDEX}")
             
             def file_record_callback(audio_data):
                 """Callback to collect audio data for file recording"""
                 self.recording_frames.append(audio_data.tobytes())
+                if len(self.recording_frames) % 100 == 0:  # Log every ~2.3 seconds
+                    logger.info(f"📹 Recording: {len(self.recording_frames)} chunks collected")
             
             await self.start_recording(file_record_callback)
-            logger.info(f"📹 Started recording to file: {filename}")
+            logger.info(f"📹 File recording started successfully: {filename}")
             return True
             
         except Exception as e:

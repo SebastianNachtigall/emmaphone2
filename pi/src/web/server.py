@@ -344,6 +344,49 @@ class PiWebServer:
                 logger.error(f"Failed to get audio devices: {e}")
                 return jsonify({"error": str(e)}), 500
         
+        @self.app.route('/api/audio/device', methods=['GET'])
+        def api_get_current_device():
+            """API endpoint to get current audio device info"""
+            try:
+                if not self.audio_manager:
+                    return jsonify({"error": "Audio manager not available"}), 503
+                
+                device_info = self.audio_manager.get_current_device_info()
+                return jsonify({"current_device": device_info})
+                
+            except Exception as e:
+                logger.error(f"Failed to get current device: {e}")
+                return jsonify({"error": str(e)}), 500
+        
+        @self.app.route('/api/audio/device/<int:device_index>', methods=['POST'])
+        def api_set_device(device_index):
+            """API endpoint to change audio device"""
+            try:
+                if not self.audio_manager:
+                    return jsonify({"error": "Audio manager not available"}), 503
+                
+                # Stop any active recording first
+                if hasattr(self.audio_manager, 'recording') and self.audio_manager.recording:
+                    if self.main_event_loop:
+                        future = asyncio.run_coroutine_threadsafe(
+                            self.audio_manager.stop_recording(),
+                            self.main_event_loop
+                        )
+                        future.result(timeout=2.0)
+                
+                # Set new device
+                self.audio_manager.set_device_index(device_index)
+                
+                return jsonify({
+                    "success": True, 
+                    "message": f"Audio device changed to index {device_index}",
+                    "device": self.audio_manager.get_current_device_info()
+                })
+                
+            except Exception as e:
+                logger.error(f"Failed to set audio device: {e}")
+                return jsonify({"error": str(e)}), 500
+        
         @self.app.route('/api/call/<user_id>', methods=['POST'])
         def api_call(user_id):
             """API endpoint to initiate call"""

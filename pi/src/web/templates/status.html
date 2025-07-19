@@ -553,31 +553,49 @@ function downloadLogs() {
 }
 
 function showAudioDevices() {
-    fetch('/api/audio/devices')
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                alert(`❌ Failed to get audio devices: ${data.error}`);
-                return;
-            }
-            
-            let deviceList = '🎤 Available Audio Devices:\n\n';
-            data.devices.forEach((device, index) => {
-                deviceList += `Device ${device.index}: ${device.name}\n`;
-                deviceList += `  - Input channels: ${device.max_input_channels}\n`;
-                deviceList += `  - Output channels: ${device.max_output_channels}\n`;
-                deviceList += `  - Sample rate: ${device.default_sample_rate} Hz\n\n`;
-            });
-            
-            if (data.devices.length === 0) {
-                deviceList += 'No audio devices found!';
-            }
-            
-            alert(deviceList);
-        })
-        .catch(error => {
-            alert(`❌ Error getting audio devices: ${error}`);
+    // Get both current device and available devices
+    Promise.all([
+        fetch('/api/audio/device').then(r => r.json()),
+        fetch('/api/audio/devices').then(r => r.json())
+    ])
+    .then(([currentData, devicesData]) => {
+        if (devicesData.error) {
+            alert(`❌ Failed to get audio devices: ${devicesData.error}`);
+            return;
+        }
+        
+        let deviceList = '🎤 Audio Device Information:\n\n';
+        
+        // Show current device
+        if (currentData.current_device && currentData.current_device.index !== undefined) {
+            const current = currentData.current_device;
+            deviceList += `📍 CURRENT DEVICE:\n`;
+            deviceList += `   Index ${current.index}: ${current.name}\n`;
+            deviceList += `   Input channels: ${current.max_input_channels}\n`;
+            deviceList += `   Output channels: ${current.max_output_channels}\n\n`;
+        }
+        
+        deviceList += '📋 ALL AVAILABLE DEVICES:\n\n';
+        devicesData.devices.forEach((device, index) => {
+            const isCurrent = currentData.current_device && device.index === currentData.current_device.index;
+            deviceList += `${isCurrent ? '👉 ' : '   '}Device ${device.index}: ${device.name}\n`;
+            deviceList += `     - Input channels: ${device.max_input_channels}\n`;
+            deviceList += `     - Output channels: ${device.max_output_channels}\n`;
+            deviceList += `     - Sample rate: ${device.default_sample_rate} Hz\n\n`;
         });
+        
+        if (devicesData.devices.length === 0) {
+            deviceList += 'No audio devices found!';
+        } else {
+            deviceList += '\n💡 To change device, copy this command and run in browser console:\n';
+            deviceList += 'fetch("/api/audio/device/INDEX", {method: "POST"}).then(r=>r.json()).then(console.log)';
+        }
+        
+        alert(deviceList);
+    })
+    .catch(error => {
+        alert(`❌ Error getting audio devices: ${error}`);
+    });
 }
 
 function forceStartRecording() {
