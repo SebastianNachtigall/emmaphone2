@@ -175,6 +175,19 @@ class CallManagerV2:
             if success:
                 await self._set_call_state(CallState.CONNECTED)
                 
+                # Start audio publishing immediately after room join
+                logger.info("🎤 Starting audio publishing after room join")
+                try:
+                    await self.livekit_client.publish_audio_track(self.audio_manager)
+                    logger.info("🎤 Audio track published successfully")
+                    
+                    # Start audio recording for LiveKit
+                    await self.audio_manager.start_recording()
+                    logger.info("🎤 Audio recording started for LiveKit")
+                    
+                except Exception as e:
+                    logger.error(f"❌ Failed to start audio publishing: {e}")
+                
                 # Start call recording immediately after successful room join
                 if self.call_recording_enabled and self.current_call:
                     logger.info("📹 Attempting to start call recording after room join")
