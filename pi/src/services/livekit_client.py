@@ -96,6 +96,9 @@ class LiveKitClient:
                 token=token
             )
             
+            # Set connected flag manually since callback might not fire
+            self.connected = True
+            
             logger.info(f"✅ Joined room: {room_name}")
             return True
             

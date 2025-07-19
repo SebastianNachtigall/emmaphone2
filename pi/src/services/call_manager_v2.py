@@ -175,7 +175,10 @@ class CallManagerV2:
             if success:
                 await self._set_call_state(CallState.CONNECTED)
                 
-                # Start audio publishing immediately after room join
+                # Small delay to ensure room connection is fully established
+                await asyncio.sleep(0.5)
+                
+                # Start audio publishing after room join
                 logger.info("🎤 Starting audio publishing after room join")
                 try:
                     await self.livekit_client.publish_audio_track(self.audio_manager)
