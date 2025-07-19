@@ -308,6 +308,12 @@ class CallManagerV2:
     async def _end_call(self):
         """End current call and cleanup"""
         try:
+            # Stop call recording first if active
+            if self.call_recording_enabled:
+                recording_file = await self.stop_call_recording()
+                if recording_file:
+                    logger.info(f"📹 Call recording saved: {recording_file}")
+            
             # Leave LiveKit room
             await self.livekit_client.leave_room()
             

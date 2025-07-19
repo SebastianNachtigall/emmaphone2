@@ -595,7 +595,7 @@ class PiWebServer:
         status_thread.start()
         
         # Run Flask-SocketIO server
-        self.socketio.run(self.app, host=host, port=self.port, debug=debug, allow_unsafe_werkzeug=True)
+        self.socketio.run(self.app, host=host, port=self.port, debug=debug, allow_unsafe_werkzeug=True, log_output=False)
     
     def stop(self):
         """Stop the web server"""

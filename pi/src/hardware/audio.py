@@ -285,6 +285,10 @@ class AudioManager:
             return 0.0
         
         try:
+            # Skip level reading if stream is being used for file recording
+            if hasattr(self, 'recording_frames') and self.recording_frames is not None:
+                return 0.0  # Return 0 during file recording to avoid conflicts
+            
             # Read a chunk of audio data
             data = self.input_stream.read(self.CHUNK_SIZE, exception_on_overflow=False)
             audio_data = np.frombuffer(data, dtype=np.int16)
@@ -298,6 +302,9 @@ class AudioManager:
             return level
             
         except Exception as e:
+            # Silently return 0 for stream conflicts during call recording
+            if "callback stream" in str(e) or "Stream closed" in str(e):
+                return 0.0
             logger.error(f"❌ Error getting audio level: {e}")
             return 0.0
     
