@@ -285,10 +285,12 @@ class CallManagerV2:
                 logger.warning("⚠️ No active call to hang up")
                 return False
             
+            logger.info("📞 Hanging up call...")
+            
             # End call (web client will handle signaling)
             await self._end_call()
             
-            logger.info("📞 Call hung up")
+            logger.info("📞 Call hung up successfully")
             return True
             
         except Exception as e:
@@ -324,18 +326,36 @@ class CallManagerV2:
     async def _end_call(self):
         """End current call and cleanup"""
         try:
+            # Check if already ending
+            if self.call_state == CallState.IDLE:
+                logger.info("📞 Call already ended")
+                return
+            
+            logger.info("📞 Ending call - starting cleanup...")
+            
             # Stop call recording first if active
             if self.call_recording_enabled:
-                recording_file = await self.stop_call_recording()
-                if recording_file:
-                    logger.info(f"📹 Call recording saved: {recording_file}")
+                try:
+                    recording_file = await self.stop_call_recording()
+                    if recording_file:
+                        logger.info(f"📹 Call recording saved: {recording_file}")
+                except Exception as e:
+                    logger.error(f"❌ Failed to stop call recording: {e}")
             
             # Leave LiveKit room
-            await self.livekit_client.leave_room()
+            try:
+                await self.livekit_client.leave_room()
+                logger.info("📞 Left LiveKit room")
+            except Exception as e:
+                logger.error(f"❌ Failed to leave LiveKit room: {e}")
             
             # Stop audio
-            await self.audio_manager.stop_recording()
-            await self.audio_manager.stop_playback()
+            try:
+                await self.audio_manager.stop_recording()
+                await self.audio_manager.stop_playback()
+                logger.info("📞 Audio stopped")
+            except Exception as e:
+                logger.error(f"❌ Failed to stop audio: {e}")
             
             # Update call end time
             if self.current_call:
@@ -343,14 +363,25 @@ class CallManagerV2:
                 
                 # Trigger callback
                 if self.on_call_ended:
-                    await self._safe_callback(self.on_call_ended, self.current_call)
+                    try:
+                        await self._safe_callback(self.on_call_ended, self.current_call)
+                    except Exception as e:
+                        logger.error(f"❌ Failed to trigger call ended callback: {e}")
             
             # Reset state
             self.current_call = None
             await self._set_call_state(CallState.IDLE)
             
+            logger.info("📞 Call cleanup completed")
+            
         except Exception as e:
             logger.error(f"❌ Failed to end call: {e}")
+            # Force state reset even if cleanup failed
+            self.current_call = None
+            try:
+                await self._set_call_state(CallState.IDLE)
+            except:
+                self.call_state = CallState.IDLE
     
     # Socket.IO event handlers
     async def _on_incoming_call(self, data):

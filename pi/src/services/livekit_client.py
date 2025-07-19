@@ -322,9 +322,37 @@ class LiveKitClient:
         
         if track.kind == rtc.TrackKind.KIND_AUDIO:
             self.remote_audio_track = track
+            logger.info(f"🔊 Audio track from {participant.identity} - starting playback...")
+            
+            # Start processing incoming audio
+            asyncio.create_task(self._process_incoming_audio(track, participant))
             
             if self.on_audio_received:
                 asyncio.create_task(self._safe_callback(self.on_audio_received, track, participant))
+    
+    async def _process_incoming_audio(self, track, participant):
+        """Process incoming audio track and send to speakers"""
+        try:
+            logger.info(f"🔊 Starting audio processing from {participant.identity}")
+            
+            # Create audio stream to read frames from the track
+            audio_stream = rtc.AudioStream(track)
+            frame_count = 0
+            
+            async for audio_frame in audio_stream:
+                frame_count += 1
+                
+                # Log first few frames for debugging
+                if frame_count <= 3:
+                    logger.info(f"🔊 Received audio frame {frame_count}: {audio_frame.samples_per_channel} samples")
+                elif frame_count == 50:
+                    logger.info(f"🔊 Audio playback: {frame_count} frames received so far")
+                
+                # TODO: Send audio_frame to Pi speakers through audio_manager
+                # For now, just log that we're receiving audio
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to process incoming audio from {participant.identity}: {e}")
     
     def _on_track_unsubscribed(self, track, publication, participant):
         """Handle track unsubscription"""
