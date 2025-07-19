@@ -590,17 +590,26 @@ class CallManagerV2:
                 logger.warning("⚠️ No active call to record")
                 return False
             
-            # Start recording through audio manager
-            if hasattr(self.audio_manager, 'start_recording_to_file'):
+            # Start mixed recording (both participants) through audio manager
+            if hasattr(self.audio_manager, 'start_call_recording_mixed'):
+                success = await self.audio_manager.start_call_recording_mixed(self.call_recording_filename)
+                if success:
+                    logger.info(f"📹 Mixed call recording started (both participants): {self.call_recording_filename}")
+                    return True
+                else:
+                    logger.error("❌ Failed to start mixed call recording")
+                    return False
+            # Fallback to old method if mixed recording not available
+            elif hasattr(self.audio_manager, 'start_recording_to_file'):
                 success = await self.audio_manager.start_recording_to_file(self.call_recording_filename)
                 if success:
-                    logger.info(f"📹 Call recording started: {self.call_recording_filename}")
+                    logger.info(f"📹 Call recording started (microphone only): {self.call_recording_filename}")
                     return True
                 else:
                     logger.error("❌ Failed to start call recording")
                     return False
             else:
-                logger.warning("⚠️ Audio manager doesn't support file recording")
+                logger.warning("⚠️ Audio manager doesn't support call recording")
                 return False
                 
         except Exception as e:
@@ -613,11 +622,17 @@ class CallManagerV2:
             if not self.call_recording_enabled or not self.call_recording_filename:
                 return None
             
-            # Stop recording through audio manager
-            if hasattr(self.audio_manager, 'stop_recording_to_file'):
+            # Stop mixed recording first, fallback to old method
+            recording_file = None
+            if hasattr(self.audio_manager, 'stop_call_recording_mixed'):
+                recording_file = await self.audio_manager.stop_call_recording_mixed()
+            elif hasattr(self.audio_manager, 'stop_recording_to_file'):
                 await self.audio_manager.stop_recording_to_file()
+                recording_file = self.call_recording_filename
             
-            recording_file = self.call_recording_filename
+            if not recording_file:
+                recording_file = self.call_recording_filename
+            
             self.disable_call_recording()
             
             logger.info(f"📹 Call recording stopped: {recording_file}")

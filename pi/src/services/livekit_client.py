@@ -202,6 +202,10 @@ class LiveKitClient:
                             # Convert to int16 PCM data
                             audio_pcm = audio_float.astype(np.int16)
                             
+                            # Add to mixed call recording if active
+                            if hasattr(audio_manager, 'add_microphone_to_recording'):
+                                audio_manager.add_microphone_to_recording(audio_pcm)
+                            
                             # Check for silence (all zeros)
                             if self.frame_count <= 5:
                                 max_amplitude = np.max(np.abs(audio_pcm))
@@ -351,8 +355,11 @@ class LiveKitClient:
             if hasattr(self, 'audio_manager') and self.audio_manager:
                 await self._start_audio_playback()
             
-            async for audio_frame in audio_stream:
+            async for audio_frame_event in audio_stream:
                 frame_count += 1
+                
+                # Extract the actual AudioFrame from the event
+                audio_frame = audio_frame_event.frame
                 
                 # Log first few frames for debugging
                 if frame_count <= 3:
@@ -373,6 +380,10 @@ class LiveKitClient:
                     # Add to playback buffer (limit buffer size to prevent memory issues)
                     if len(self.playback_buffer) < 50:  # Max ~1 second of audio
                         self.playback_buffer.append(audio_array.tobytes())
+                    
+                    # Add to mixed call recording if active
+                    if hasattr(self, 'audio_manager') and hasattr(self.audio_manager, 'add_incoming_to_recording'):
+                        self.audio_manager.add_incoming_to_recording(audio_array.tobytes())
                     
                     # Log audio level for first few frames
                     if frame_count <= 3:

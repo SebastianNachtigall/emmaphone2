@@ -5,6 +5,7 @@ Handles audio recording and playback using PyAudio
 """
 import asyncio
 import logging
+import time
 import wave
 import pyaudio
 import numpy as np
@@ -31,6 +32,11 @@ class AudioManager:
         self.recording = False
         self.playing = False
         self.audio_callback = None
+        
+        # Call recording - mixed audio (both participants)
+        self.call_recording_frames = []
+        self.call_recording_filename = None
+        self.call_recording_active = False
         
     async def initialize(self):
         """Initialize PyAudio"""
@@ -496,3 +502,144 @@ class AudioManager:
             self.pyaudio_instance = None
         
         logger.info("🛑 Audio manager stopped")
+    
+    async def start_call_recording_mixed(self, filename: str) -> bool:
+        """Start mixed call recording (both microphone and incoming audio)"""
+        try:
+            self.call_recording_frames = []
+            self.call_recording_filename = filename
+            self.call_recording_active = True
+            
+            logger.info(f"📹 Started mixed call recording: {filename}")
+            logger.info("📹 Recording will capture both microphone input and incoming audio")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to start mixed call recording: {e}")
+            return False
+    
+    def add_microphone_to_recording(self, audio_data: np.ndarray):
+        """Add microphone audio to call recording"""
+        if self.call_recording_active:
+            # Store with channel identifier (0 = microphone)
+            self.call_recording_frames.append({
+                'source': 'microphone',
+                'data': audio_data.tobytes(),
+                'timestamp': time.time()
+            })
+    
+    def add_incoming_to_recording(self, audio_data: bytes):
+        """Add incoming audio (from LiveKit) to call recording"""
+        if self.call_recording_active:
+            # Store with channel identifier (1 = incoming)
+            self.call_recording_frames.append({
+                'source': 'incoming',
+                'data': audio_data,
+                'timestamp': time.time()
+            })
+    
+    async def stop_call_recording_mixed(self) -> Optional[str]:
+        """Stop mixed call recording and save to file"""
+        try:
+            if not self.call_recording_active:
+                logger.warning("⚠️ No active mixed call recording to stop")
+                return None
+            
+            self.call_recording_active = False
+            
+            if not self.call_recording_frames:
+                logger.warning("⚠️ No audio data recorded")
+                return None
+            
+            # Sort frames by timestamp to maintain chronological order
+            self.call_recording_frames.sort(key=lambda x: x['timestamp'])
+            
+            # Mix the audio streams
+            mixed_audio = self._mix_audio_streams()
+            
+            # Save to WAV file
+            with wave.open(self.call_recording_filename, 'wb') as wf:
+                wf.setnchannels(self.CHANNELS)
+                wf.setsampwidth(self.pyaudio_instance.get_sample_size(self.FORMAT))
+                wf.setframerate(self.SAMPLE_RATE)
+                wf.writeframes(mixed_audio)
+            
+            logger.info(f"📹 Mixed call recording saved: {self.call_recording_filename}")
+            logger.info(f"📹 Recorded {len(self.call_recording_frames)} audio chunks")
+            
+            filename = self.call_recording_filename
+            
+            # Cleanup
+            self.call_recording_frames = []
+            self.call_recording_filename = None
+            
+            return filename
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to stop mixed call recording: {e}")
+            return None
+    
+    def _mix_audio_streams(self) -> bytes:
+        """Mix microphone and incoming audio streams into single audio track"""
+        try:
+            import time
+            
+            # Group frames by time windows (e.g., 50ms windows)
+            window_size = 0.05  # 50ms
+            start_time = self.call_recording_frames[0]['timestamp']
+            
+            mixed_chunks = []
+            current_window_start = start_time
+            
+            while current_window_start < self.call_recording_frames[-1]['timestamp']:
+                window_end = current_window_start + window_size
+                
+                # Get all frames in this time window
+                window_frames = [
+                    frame for frame in self.call_recording_frames
+                    if current_window_start <= frame['timestamp'] < window_end
+                ]
+                
+                if window_frames:
+                    # Mix audio for this window
+                    mic_data = []
+                    incoming_data = []
+                    
+                    for frame in window_frames:
+                        audio_array = np.frombuffer(frame['data'], dtype=np.int16)
+                        if frame['source'] == 'microphone':
+                            mic_data.append(audio_array)
+                        else:  # incoming
+                            incoming_data.append(audio_array)
+                    
+                    # Average microphone data
+                    if mic_data:
+                        mic_mixed = np.mean(mic_data, axis=0).astype(np.int16)
+                    else:
+                        mic_mixed = np.zeros(self.CHUNK_SIZE * self.CHANNELS, dtype=np.int16)
+                    
+                    # Average incoming data
+                    if incoming_data:
+                        incoming_mixed = np.mean(incoming_data, axis=0).astype(np.int16)
+                    else:
+                        incoming_mixed = np.zeros(self.CHUNK_SIZE * self.CHANNELS, dtype=np.int16)
+                    
+                    # Mix both streams (simple addition with clipping prevention)
+                    mixed = (mic_mixed.astype(np.int32) + incoming_mixed.astype(np.int32)) // 2
+                    mixed = np.clip(mixed, -32768, 32767).astype(np.int16)
+                    
+                    mixed_chunks.append(mixed.tobytes())
+                else:
+                    # Add silence for gaps
+                    silence = np.zeros(self.CHUNK_SIZE * self.CHANNELS, dtype=np.int16)
+                    mixed_chunks.append(silence.tobytes())
+                
+                current_window_start = window_end
+            
+            return b''.join(mixed_chunks)
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to mix audio streams: {e}")
+            # Fallback: just concatenate microphone audio
+            mic_frames = [f['data'] for f in self.call_recording_frames if f['source'] == 'microphone']
+            return b''.join(mic_frames)
