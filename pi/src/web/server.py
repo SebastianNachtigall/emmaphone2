@@ -585,6 +585,11 @@ class PiWebServer:
         """Run the web server"""
         logger.info(f"Starting Pi web interface on http://{host}:{self.port}")
         
+        # Suppress werkzeug logging for audio level requests
+        import logging as py_logging
+        werkzeug_logger = py_logging.getLogger('werkzeug')
+        werkzeug_logger.setLevel(py_logging.WARNING)
+        
         # Start status update thread
         def status_updater():
             while True:
