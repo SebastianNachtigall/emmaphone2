@@ -175,15 +175,31 @@ class LiveKitClient:
         try:
             logger.info("🎤 Starting audio capture for LiveKit...")
             
+            # Add frame counter for debugging
+            self.frame_count = 0
+            
             def audio_callback(audio_data):
                 """Callback to send audio data to LiveKit"""
                 try:
+                    self.frame_count += 1
+                    
                     if self.audio_source and len(audio_data) > 0:
+                        # Log first few frames for debugging
+                        if self.frame_count <= 5:
+                            logger.info(f"🎤 Audio frame {self.frame_count}: {len(audio_data)} samples, type: {type(audio_data)}")
+                        elif self.frame_count == 50:
+                            logger.info(f"🎤 Audio streaming: {self.frame_count} frames sent so far")
+                        
                         # Convert numpy array to the format LiveKit expects
                         import numpy as np
                         if isinstance(audio_data, np.ndarray):
                             # Convert to int16 PCM data
                             audio_pcm = audio_data.astype(np.int16)
+                            
+                            # Check for silence (all zeros)
+                            if self.frame_count <= 5:
+                                max_amplitude = np.max(np.abs(audio_pcm))
+                                logger.info(f"🎤 Frame {self.frame_count} max amplitude: {max_amplitude}")
                             
                             # Create AudioFrame and send to LiveKit
                             frame = rtc.AudioFrame(
@@ -197,17 +213,20 @@ class LiveKitClient:
                             if self.main_loop and not self.main_loop.is_closed():
                                 try:
                                     # Schedule in the main event loop
-                                    asyncio.run_coroutine_threadsafe(
+                                    future = asyncio.run_coroutine_threadsafe(
                                         self.audio_source.capture_frame(frame), self.main_loop
                                     )
-                                except Exception:
-                                    # Skip frame if scheduling fails
-                                    pass
+                                    # Log success for first few frames
+                                    if self.frame_count <= 3:
+                                        logger.info(f"🎤 Frame {self.frame_count} sent to LiveKit successfully")
+                                except Exception as e:
+                                    if self.frame_count <= 5:
+                                        logger.error(f"❌ Failed to send frame {self.frame_count}: {e}")
                             
                 except Exception as e:
                     # Don't spam logs for threading issues
-                    if "event loop" not in str(e):
-                        logger.error(f"❌ Audio callback error: {e}")
+                    if "event loop" not in str(e) and self.frame_count <= 5:
+                        logger.error(f"❌ Audio callback error frame {self.frame_count}: {e}")
             
             # Start recording with our callback
             await audio_manager.start_recording(audio_callback)
