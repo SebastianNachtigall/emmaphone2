@@ -363,49 +363,45 @@ function stopDurationTimer() {
 }
 
 function initiateCall(userId, contactName) {
-    if (confirm(`Call ${contactName}?`)) {
-        fetch(`/api/call/${userId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                console.log(`Call initiated to ${contactName}`);
-            } else {
-                alert(`Failed to call ${contactName}: ${data.error}`);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert(`Failed to call ${contactName}`);
-        });
-    }
+    fetch(`/api/call/${userId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log(`Call initiated to ${contactName}`);
+        } else {
+            alert(`Failed to call ${contactName}: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(`Failed to call ${contactName}`);
+    });
 }
 
 function hangUpCall() {
-    if (confirm('Hang up current call?')) {
-        fetch('/api/hangup', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                console.log('Call hung up');
-            } else {
-                alert(`Failed to hang up: ${data.error}`);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Failed to hang up call');
-        });
-    }
+    fetch('/api/hangup', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Call hung up');
+        } else {
+            alert(`Failed to hang up: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to hang up call');
+    });
 }
 </script>
 {% endblock %}

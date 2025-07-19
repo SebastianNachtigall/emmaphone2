@@ -193,13 +193,15 @@ class LiveKitClient:
                         # Convert numpy array to the format LiveKit expects
                         import numpy as np
                         if isinstance(audio_data, np.ndarray):
+                            # Apply gain reduction to prevent clipping (reduce volume by 75%)
+                            audio_float = audio_data.astype(np.float32) * 0.25
                             # Convert to int16 PCM data
-                            audio_pcm = audio_data.astype(np.int16)
+                            audio_pcm = audio_float.astype(np.int16)
                             
                             # Check for silence (all zeros)
                             if self.frame_count <= 5:
                                 max_amplitude = np.max(np.abs(audio_pcm))
-                                logger.info(f"🎤 Frame {self.frame_count} max amplitude: {max_amplitude}")
+                                logger.info(f"🎤 Frame {self.frame_count} max amplitude: {max_amplitude} (after gain reduction)")
                             
                             # Create AudioFrame and send to LiveKit
                             frame = rtc.AudioFrame(

@@ -525,26 +525,24 @@ function refreshStatus() {
 }
 
 function testCall(userId, contactName) {
-    if (confirm(`Test call to ${contactName}?`)) {
-        fetch(`/api/call/${userId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert(`Test call initiated to ${contactName}!`);
-            } else {
-                alert(`Failed to call ${contactName}: ${data.error}`);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert(`Failed to call ${contactName}`);
-        });
-    }
+    fetch(`/api/call/${userId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log(`Test call initiated to ${contactName}!`);
+        } else {
+            alert(`Failed to call ${contactName}: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(`Failed to call ${contactName}`);
+    });
 }
 
 function downloadLogs() {
