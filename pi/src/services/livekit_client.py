@@ -7,6 +7,7 @@ import asyncio
 import logging
 import json
 import aiohttp
+import pyaudio
 from typing import Optional, Callable, Dict, Any
 from livekit import rtc
 
@@ -130,6 +131,9 @@ class LiveKitClient:
         try:
             if not self.room or not self.connected:
                 raise Exception("Not connected to room")
+            
+            # Store audio manager reference for playback
+            self.audio_manager = audio_manager
             
             logger.info("🎤 Creating LiveKit audio source...")
             
@@ -339,6 +343,14 @@ class LiveKitClient:
             audio_stream = rtc.AudioStream(track)
             frame_count = 0
             
+            # Initialize playback buffer as instance variable
+            if not hasattr(self, 'playback_buffer'):
+                self.playback_buffer = []
+            
+            # Start audio playback if not already active
+            if hasattr(self, 'audio_manager') and self.audio_manager:
+                await self._start_audio_playback()
+            
             async for audio_frame in audio_stream:
                 frame_count += 1
                 
@@ -348,11 +360,67 @@ class LiveKitClient:
                 elif frame_count == 50:
                     logger.info(f"🔊 Audio playback: {frame_count} frames received so far")
                 
-                # TODO: Send audio_frame to Pi speakers through audio_manager
-                # For now, just log that we're receiving audio
+                # Convert LiveKit audio frame to numpy array for playback
+                try:
+                    import numpy as np
+                    
+                    # Extract PCM data from LiveKit AudioFrame
+                    pcm_data = audio_frame.data
+                    
+                    # Convert bytes to numpy array (int16)
+                    audio_array = np.frombuffer(pcm_data, dtype=np.int16)
+                    
+                    # Add to playback buffer (limit buffer size to prevent memory issues)
+                    if len(self.playback_buffer) < 50:  # Max ~1 second of audio
+                        self.playback_buffer.append(audio_array.tobytes())
+                    
+                    # Log audio level for first few frames
+                    if frame_count <= 3:
+                        max_amplitude = np.max(np.abs(audio_array))
+                        logger.info(f"🔊 Frame {frame_count} max amplitude: {max_amplitude}")
+                
+                except Exception as e:
+                    if frame_count <= 5:
+                        logger.error(f"❌ Failed to process audio frame {frame_count}: {e}")
                 
         except Exception as e:
             logger.error(f"❌ Failed to process incoming audio from {participant.identity}: {e}")
+    
+    async def _start_audio_playback(self):
+        """Start audio playback using the audio manager"""
+        try:
+            # Reference to audio manager should be set from call manager
+            if not hasattr(self, 'audio_manager') or not self.audio_manager:
+                logger.warning("⚠️ No audio manager available for playback")
+                return
+            
+            # Check if playback is already active
+            if getattr(self.audio_manager, 'playing', False):
+                logger.info("🔊 Playback already active")
+                return
+            
+            def playback_callback(in_data, frame_count, time_info, status):
+                """Callback to provide audio data for playback"""
+                try:
+                    if hasattr(self, 'playback_buffer') and self.playback_buffer:
+                        # Get audio data from buffer
+                        audio_data = self.playback_buffer.pop(0)
+                        return (audio_data, pyaudio.paContinue)
+                    else:
+                        # Return silence if no data available
+                        silence = b'\x00' * (frame_count * self.audio_manager.CHANNELS * 2)
+                        return (silence, pyaudio.paContinue)
+                except Exception as e:
+                    logger.error(f"❌ Playback callback error: {e}")
+                    silence = b'\x00' * (frame_count * self.audio_manager.CHANNELS * 2)
+                    return (silence, pyaudio.paContinue)
+            
+            # Start playback with callback
+            await self.audio_manager.start_playback(playback_callback)
+            logger.info("🔊 Playback started")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to start audio playback: {e}")
     
     def _on_track_unsubscribed(self, track, publication, participant):
         """Handle track unsubscription"""
@@ -360,6 +428,11 @@ class LiveKitClient:
         
         if track.kind == rtc.TrackKind.KIND_AUDIO:
             self.remote_audio_track = None
+            
+            # Clear playback buffer
+            if hasattr(self, 'playback_buffer'):
+                self.playback_buffer.clear()
+                logger.info("🔊 Playback buffer cleared")
     
     async def _safe_callback(self, callback, *args):
         """Safely execute callback function"""
@@ -377,9 +450,14 @@ class LiveKitClient:
             await self.unpublish_audio_track()
             await self.leave_room()
             
+            # Clear playback buffer
+            if hasattr(self, 'playback_buffer'):
+                self.playback_buffer.clear()
+            
             self.room = None
             self.connected = False
             self.audio_source = None
+            self.audio_manager = None
             
             logger.info("🛑 LiveKit client stopped")
             

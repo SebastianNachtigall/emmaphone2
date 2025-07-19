@@ -285,6 +285,11 @@ class CallManagerV2:
                 logger.warning("⚠️ No active call to hang up")
                 return False
             
+            # Check if already hanging up
+            if hasattr(self, '_ending_call') and self._ending_call:
+                logger.info("📞 Call already being hung up")
+                return True
+            
             logger.info("📞 Hanging up call...")
             
             # End call (web client will handle signaling)
@@ -326,10 +331,18 @@ class CallManagerV2:
     async def _end_call(self):
         """End current call and cleanup"""
         try:
-            # Check if already ending
+            # Check if already ending or ended
             if self.call_state == CallState.IDLE:
                 logger.info("📞 Call already ended")
                 return
+            
+            # Check if we're already in the middle of ending a call
+            if hasattr(self, '_ending_call') and self._ending_call:
+                logger.info("📞 Call already being ended, skipping duplicate cleanup")
+                return
+            
+            # Set flag to prevent duplicate cleanup
+            self._ending_call = True
             
             logger.info("📞 Ending call - starting cleanup...")
             
@@ -372,12 +385,16 @@ class CallManagerV2:
             self.current_call = None
             await self._set_call_state(CallState.IDLE)
             
+            # Clear ending flag
+            self._ending_call = False
+            
             logger.info("📞 Call cleanup completed")
             
         except Exception as e:
             logger.error(f"❌ Failed to end call: {e}")
             # Force state reset even if cleanup failed
             self.current_call = None
+            self._ending_call = False
             try:
                 await self._set_call_state(CallState.IDLE)
             except:
